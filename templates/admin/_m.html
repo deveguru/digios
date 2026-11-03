@@ -1,0 +1,11 @@
+{% macro pager(page, pages) -%}
+<div class="pager">{% set a = request.args.to_dict() %}
+{% if pages > 1 %}{% for i in range([1, page - 4]|max, [pages, page + 4]|min + 1) %}{% set _ = a.update({'page': i}) %}
+{% if i == page %}<span class="on">{{ fa(i) }}</span>{% else %}<a href="?{{ a|urlencode }}">{{ fa(i) }}</a>{% endif %}{% endfor %}
+<span class="muted">از {{ fa(pages) }}</span>{% endif %}
+<label class="perpage small">تعداد نمایش <select class="in" data-per>{% for n in [10, 20, 40, 60, 100, 200] %}<option value="{{ n }}" {{ 'selected' if (request.args.get('per') or '')|string == n|string }}>{{ fa(n) }}</option>{% endfor %}</select></label></div>
+{%- endmacro %}
+{% macro st(slug, statuses=None) -%}{{ ostatus(slug) }}{%- endmacro %}
+{% macro csrf_field() %}<input type="hidden" name="_csrf" value="{{ csrf }}">{% endmacro %}
+{% macro sw(name, on) %}<label class="switch"><input type="checkbox" name="{{ name }}" value="1" {{ 'checked' if on }}><i></i></label>{% endmacro %}
+{% macro joblist(list) %}{% for j in list %}<div class="card" data-job="{{ j.id }}" style="padding:10px 14px">#{{ j.id }}</div>{% endfor %}{% endmacro %}

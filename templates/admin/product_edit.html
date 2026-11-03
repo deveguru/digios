@@ -1,0 +1,83 @@
+{% extends "admin/base.html" %}{% from "admin/_m.html" import csrf_field with context %}
+{% block title %}{{ p.name or 'محصول جدید' }}{% endblock %}{% block h1 %}{{ 'ویرایش محصول' if p.id else 'محصول جدید' }}{% endblock %}
+{% block actions %}{% if p.id %}<a class="btn l" href="/product/{{ url_slug(p.slug) }}/" target="_blank">{{ ic('external-link') }} مشاهده</a>{% endif %}{% endblock %}
+{% block body %}{% set m = p.meta or {} %}
+<form method="post" enctype="multipart/form-data">{{ csrf_field() }}
+<div class="g2" style="grid-template-columns:2fr 1fr">
+<div>
+  <div class="card">
+    <label class="f"><span>نام محصول</span><input class="in" name="name" value="{{ p.name or '' }}" required></label>
+    <label class="f"><span>نامک (slug)</span><input class="in mono" style="width:100%" name="slug" value="{{ (p.slug or '')|urldecode }}"></label>
+    <label class="f"><span>توضیحات کامل (HTML)</span><textarea class="in" name="description" rows="12">{{ p.description or '' }}</textarea></label>
+    <label class="f"><span>توضیح کوتاه</span><textarea class="in" name="short_description" rows="4">{{ p.short_description or '' }}</textarea></label>
+  </div>
+  <div class="card"><h3>قیمت و موجودی</h3>
+    <div class="g3">
+      <label class="f"><span>نوع</span><select class="in" name="type">{% for k, l in [('simple','ساده'),('variable','متغیر'),('grouped','گروهی'),('external','خارجی')] %}<option value="{{ k }}" {{ 'selected' if p.type == k }}>{{ l }}</option>{% endfor %}</select></label>
+      <label class="f"><span>قیمت عادی (تومان)</span><input class="in" name="regular_price" value="{{ p.regular_price or '' }}"></label>
+      <label class="f"><span>قیمت حراج</span><input class="in" name="sale_price" value="{{ p.sale_price or '' }}"></label>
+      <label class="f"><span>شروع حراج</span><input class="in" data-jdate name="sale_from" value="{{ to_jalali_input(p.sale_from) }}"></label>
+      <label class="f"><span>پایان حراج</span><input class="in" data-jdate name="sale_to" value="{{ to_jalali_input(p.sale_to) }}"></label>
+      <label class="f"><span>SKU</span><input class="in" name="sku" value="{{ p.sku or '' }}"></label>
+      <label class="f"><span>وضعیت موجودی</span><select class="in" name="stock_status">{% for k, l in [('instock','موجود'),('outofstock','ناموجود'),('onbackorder','پیش‌سفارش')] %}<option value="{{ k }}" {{ 'selected' if p.stock_status == k }}>{{ l }}</option>{% endfor %}</select></label>
+      <label class="f"><span>مدیریت موجودی</span><select class="in" name="manage_stock"><option value="0">خیر</option><option value="1" {{ 'selected' if p.manage_stock }}>بله</option></select></label>
+      <label class="f"><span>تعداد موجودی</span><input class="in" name="stock_qty" value="{{ p.stock_qty if p.stock_qty is not none else '' }}"></label>
+      <label class="f"><span>وزن (گرم)</span><input class="in" name="weight" value="{{ p.weight or '' }}"></label>
+      <label class="f"><span>ترتیب</span><input class="in" name="menu_order" value="{{ p.menu_order or 0 }}"></label>
+      <label class="f"><span>پیش‌سفارش</span><select class="in" name="backorders">{% for k, l in [('no','خیر'),('notify','بله با اطلاع'),('yes','بله')] %}<option value="{{ k }}" {{ 'selected' if p.backorders == k }}>{{ l }}</option>{% endfor %}</select></label>
+    </div>
+  </div>
+  {% if vars %}<div class="card"><h3>متغیرها ({{ fa(vars|length) }})</h3><div class="tw"><table class="t"><thead><tr><th>ویژگی‌ها</th><th>SKU</th><th>قیمت</th><th>حراج</th><th>موجودی</th><th>فعال</th></tr></thead><tbody>
+    {% for v in vars %}<tr><td class="small">{% for k, val in (v.var_attrs or {}).items() %}{{ k|replace('pa_','')|urldecode }}: <b>{{ (val or 'همه')|urldecode }}</b><br>{% endfor %}</td>
+      <td><input class="in" name="v_sku_{{ v.id }}" value="{{ v.sku or '' }}" style="width:100px"></td>
+      <td><input class="in" name="v_price_{{ v.id }}" value="{{ v.regular_price or '' }}" style="width:110px"></td>
+      <td><input class="in" name="v_sale_{{ v.id }}" value="{{ v.sale_price or '' }}" style="width:110px"></td>
+      <td><select class="in" name="v_stock_{{ v.id }}" style="width:auto"><option value="instock">موجود</option><option value="outofstock" {{ 'selected' if v.stock_status == 'outofstock' }}>ناموجود</option></select></td>
+      <td><input type="checkbox" name="v_on_{{ v.id }}" value="1" {{ 'checked' if v.status == 'publish' }}></td></tr>{% endfor %}</tbody></table></div></div>{% endif %}
+  {% if F.variations_manager or p.type == 'variable' %}<div class="card"><h3>ویژگی‌ها (WC Variations Manager)</h3>
+    <p class="small muted">ویژگی‌های سراسری را انتخاب کنید؛ با تیک «برای متغیر» در ساخت متغیرها استفاده می‌شوند. پس از ذخیره، از بخش «ویژگی‌ها و متغیرها» می‌توانید متغیرها را خودکار بسازید.</p>
+    <div id="attrs"></div><input type="hidden" name="attrs_json" id="attrs_json">
+    <div class="row"><select class="in" id="addAttr" style="width:auto"><option value="">+ افزودن ویژگی…</option>{% for a in attrs_all %}<option value="pa_{{ a.name }}">{{ a.label }}</option>{% endfor %}</select></div></div>{% endif %}
+  {% if F.product_styler %}<div class="card"><h3>استایل صفحه محصول</h3><div class="g2">
+    <label class="f"><span>شناسه محصولات مرتبط سفارشی (با کاما)</span><input class="in" name="wcps_related" value="{{ (m._wcps_custom_related or [])|join(',') }}"></label>
+    <label class="f"><span>عنوان محصولات مرتبط</span><input class="in" name="wcps_related_title" value="{{ m._wcps_custom_related_title or '' }}"></label>
+    <label class="f"><span>محصولات خرید سریع همراه (شناسه‌ها)</span><input class="in" name="wcps_quick" value="{{ (m._wcps_quick_products or [])|join(',') }}"></label>
+    <label class="f"><span>عنوان بخش ویدیو</span><input class="in" name="wcps_videos_title" value="{{ m._wcps_product_videos_title or '' }}"></label></div>
+    <label class="f"><span>ویدیوها (هر خط یک لینک یوتیوب/آپارات/mp4)</span><textarea class="in" name="wcps_videos" rows="3">{% for v in (m._wcps_product_videos or []) %}{{ v.url if v is mapping else v }}
+{% endfor %}</textarea></label></div>{% endif %}
+  {% if F.dideban %}<div class="card"><h3>دیده‌بان قیمت رقیب</h3><div class="g3">
+    <label class="f" style="grid-column:1/-1"><span>لینک محصول رقیب</span><input class="in mono" style="width:100%" name="dd_competitor_url" value="{{ m._dideban369_competitor_url or '' }}"></label>
+    <label class="f"><span>نوع تعدیل</span><select class="in" name="dd_adjustment_type">{% for k, l in [('','خودکار'),('none','بدون تغییر'),('percent','درصدی'),('amount','مبلغ ثابت')] %}<option value="{{ k }}" {{ 'selected' if (m._dideban369_adjustment_type or '') == k }}>{{ l }}</option>{% endfor %}</select></label>
+    <label class="f"><span>مقدار تعدیل (+/-)</span><input class="in" name="dd_price_adjustment" value="{{ m._dideban369_price_adjustment or '' }}"></label>
+    <label class="f"><span>بروزرسانی خودکار</span><select class="in" name="dd_auto_update"><option value="0">خیر</option><option value="1" {{ 'selected' if m._dideban369_auto_update in ('1', 'yes') }}>بله</option></select></label>
+    <label class="f"><span>حداقل قیمت</span><input class="in" name="dd_floor_price" value="{{ m._dideban369_floor_price or '' }}"></label>
+    <label class="f"><span>حداکثر قیمت</span><input class="in" name="dd_ceiling_price" value="{{ m._dideban369_ceiling_price or '' }}"></label>
+    <div class="small muted">آخرین قیمت رقیب: {{ money(m._dideban369_last_competitor_price) if m._dideban369_last_competitor_price else '—' }}<br>{{ jdt(m._dideban369_last_update) if m._dideban369_last_update else '' }}</div></div></div>{% endif %}
+</div>
+<div>
+  <div class="card"><label class="f"><span>وضعیت انتشار</span><select class="in" name="status">{% for k, l in [('publish','منتشر شده'),('draft','پیش‌نویس'),('pending','در انتظار بررسی'),('private','خصوصی'),('trash','زباله‌دان')] %}<option value="{{ k }}" {{ 'selected' if p.status == k }}>{{ l }}</option>{% endfor %}</select></label>
+    <label class="small"><input type="checkbox" name="featured" value="1" {{ 'checked' if p.featured }}> محصول ویژه</label>
+    <button class="btn" style="width:100%;justify-content:center;margin-top:12px">{{ ic('save') }} ذخیره محصول</button></div>
+  <div class="card"><h3>تصویر شاخص</h3>{% if img %}<img src="{{ img }}" style="border-radius:10px">{% endif %}<input type="hidden" name="image_id" value="{{ p.image_id or '' }}">
+    <input class="in" type="file" name="image" accept="image/*" style="margin-top:8px"></div>
+  <div class="card"><h3>گالری</h3><div class="mgrid" id="gal">{% for gimg in gallery %}<label data-id="{{ gimg.id }}"><img src="{{ gimg.url }}"><small onclick="this.parentElement.remove();syncGal()">{{ ic('x') }} حذف</small></label>{% endfor %}</div>
+    <input type="hidden" name="gallery_ids" id="gallery_ids" value="{{ gallery|map(attribute='id')|join(',') }}"><input class="in" type="file" name="gallery_files" accept="image/*" multiple style="margin-top:8px"></div>
+  <div class="card"><h3>دسته‌بندی‌ها</h3><div style="max-height:320px;overflow:auto">{% for c in cats %}<label class="small" style="display:block"><input type="checkbox" name="terms" value="{{ c.id }}" {{ 'checked' if c.id in sel }}> {{ c.name }}</label>{% endfor %}</div></div>
+  <div class="card"><h3>برچسب‌ها</h3><div style="max-height:200px;overflow:auto">{% for c in tags %}<label class="small" style="display:inline-block;margin-left:8px"><input type="checkbox" name="terms" value="{{ c.id }}" {{ 'checked' if c.id in sel }}> {{ c.name }}</label>{% endfor %}</div></div>
+  {% if logs %}<div class="card"><h3>لاگ تغییرات</h3>{% for l in logs %}<div class="small" style="border-bottom:1px solid var(--line);padding:4px 0">{{ l.action_type }} — {{ l.editor_login }} — {{ jdt(l.log_time) }}</div>{% endfor %}</div>{% endif %}
+</div></div>
+</form>
+{% endblock %}
+{% block scripts %}<script>
+function syncGal(){document.getElementById('gallery_ids').value=[...document.querySelectorAll('#gal [data-id]')].map(x=>x.dataset.id).join(',')}
+const TERMS={{ attr_terms|tojson }}, LABELS={ {% for a in attrs_all %}"pa_{{ a.name }}":{{ a.label|tojson }},{% endfor %} };
+let A={{ attrs|tojson }}.map(a=>({key:a.key,label:a.label,variation:a.variation,visible:a.visible,sel:a.options.map(o=>o.slug),custom:!a.key.startsWith('pa_'),values:a.options.map(o=>o.name).join('|')}));
+const box=document.getElementById('attrs');
+function render(){if(!box)return;box.innerHTML=A.map((a,i)=>{const terms=TERMS[a.key.replace('pa_','')]||[];
+ return `<div class="card" style="background:#fafafa"><div class="row sp"><b>${a.label}</b><span><label class="small"><input type="checkbox" ${a.variation?'checked':''} onchange="A[${i}].variation=this.checked;sync()"> برای متغیر</label> <a class="btn s l" onclick="A.splice(${i},1);render()">حذف</a></span></div>`+
+ (a.custom?`<input class="in" value="${a.values}" onchange="A[${i}].values=this.value;sync()">`:`<div>${terms.map(t=>`<label class="small" style="display:inline-block;margin-left:8px"><input type="checkbox" ${a.sel.includes(t.slug)?'checked':''} onchange="tog(${i},'${t.slug}',${t.id},this.checked)"> ${t.name}</label>`).join('')}</div>`)+'</div>'}).join('');sync()}
+function tog(i,slug,id,on){const a=A[i];a.sel=a.sel.filter(s=>s!==slug);if(on)a.sel.push(slug);sync()}
+function sync(){const out=A.map(a=>a.custom?{name:a.label,values:a.values,variation:a.variation,visible:true}:{key:a.key,variation:a.variation,visible:true,terms:(TERMS[a.key.replace('pa_','')]||[]).filter(t=>a.sel.includes(t.slug)).map(t=>t.id)});
+ const f=document.getElementById('attrs_json');if(f)f.value=JSON.stringify(out)}
+document.getElementById('addAttr')?.addEventListener('change',e=>{const k=e.target.value;if(k&&!A.find(a=>a.key===k)){A.push({key:k,label:LABELS[k],variation:true,visible:true,sel:[],custom:false});render()}e.target.value=''});
+render();</script>{% endblock %}

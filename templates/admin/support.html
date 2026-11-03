@@ -1,0 +1,8 @@
+{% extends "admin/base.html" %}{% from "admin/_m.html" import csrf_field, pager with context %}
+{% block title %}درخواست‌های پشتیبانی{% endblock %}{% block h1 %}درخواست‌های پشتیبانی فوری ({{ fa(total) }}){% endblock %}
+{% block body %}
+<form method="post" class="card tw">{{ csrf_field() }}<div class="row" style="margin-bottom:8px"><button class="btn l" name="action" value="read">علامت خوانده‌شده</button><button class="btn red" name="action" value="delete" onclick="return confirm('حذف؟')">حذف</button></div>
+<table class="t"><thead><tr><th><input type="checkbox" data-checkall=".sc"></th><th>زمان</th><th>موبایل</th><th>پیام</th><th>IP</th></tr></thead><tbody>
+{% for r in rows %}<tr style="{{ '' if r.is_read else 'font-weight:700' }}"><td><input type="checkbox" class="sc" name="ids" value="{{ r.id }}"></td><td class="small">{{ jdt(r.submitted_at) }}</td><td><a class="mono" href="tel:{{ r.phone }}">{{ r.phone }}</a></td><td>{{ r.problem }}</td><td class="small mono">{{ r.ip_address }}</td></tr>{% endfor %}</tbody></table></form>
+{{ pager(page, pages) }}
+{% endblock %}

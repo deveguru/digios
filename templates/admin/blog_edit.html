@@ -1,0 +1,46 @@
+{% extends "admin/base.html" %}{% from "admin/_m.html" import csrf_field with context %}
+{% block title %}{{ p.title or 'نوشته جدید' }}{% endblock %}{% block h1 %}{{ 'ویرایش نوشته' if p.id else 'نوشته جدید' }}{% endblock %}
+{% block actions %}{% if p.id %}<a class="btn l" href="/{{ url_slug(p.slug) }}/" target="_blank">{{ ic('external-link') }} مشاهده</a>{% endif %}{% endblock %}
+{% block body %}{% set m = p.meta or {} %}
+<div class="card"><h3>{{ ic('sparkles') }} نوشتن با هوش مصنوعی لمورا</h3>
+{% if ai_on %}<div class="g4"><label class="f" style="grid-column:span 2"><span>موضوع مقاله</span><input class="in" id="ai_topic" placeholder="مثلاً: راهنمای انتخاب چاقوی کمپینگ"></label>
+<label class="f"><span>کلمات کلیدی</span><input class="in" id="ai_kw"></label><label class="f"><span>طول (کلمه)</span><select class="in" id="ai_words"><option>600</option><option selected>900</option><option>1300</option><option>1800</option></select></label>
+<label class="f"><span>لحن</span><input class="in" id="ai_tone" placeholder="پیش‌فرض"></label><label class="f"><span>زبان</span><select class="in" id="ai_lang"><option value="fa">فارسی</option><option value="en">English</option></select></label>
+<label class="f" style="grid-column:span 2"><span>نکات اضافه (اختیاری)</span><input class="in" id="ai_extra" placeholder="مثلاً به محصولات فروشگاه اشاره کن"></label></div>
+<div class="row"><button class="btn" type="button" id="ai_go">{{ ic('wand-sparkles') }} بنویس</button><label class="small"><input type="checkbox" id="ai_img" checked> تصویر شاخص هم بساز</label><span id="ai_st" class="small muted"></span></div>
+{% else %}<p class="muted">کلید API لمورا تنظیم نشده است — <a href="/admin/ai">تنظیم کنید</a>.</p>{% endif %}</div>
+<form method="post" enctype="multipart/form-data">{{ csrf_field() }}
+<div class="g2" style="grid-template-columns:2fr 1fr">
+<div><div class="card"><h3>{{ ic('pen-line') }} محتوا</h3>
+<label class="f"><span>عنوان</span><input class="in" name="title" id="f_title" value="{{ p.title or '' }}" required></label>
+<label class="f"><span>نامک</span><input class="in mono" style="width:100%" name="slug" id="f_slug" value="{{ (p.slug or '')|urldecode }}"></label>
+<div class="row" style="margin-bottom:6px">{% if ai_on %}<button type="button" class="btn s l" data-assist="improve">{{ ic('sparkles') }} بهبود متن</button><button type="button" class="btn s l" data-assist="expand">{{ ic('list-plus') }} گسترش</button><button type="button" class="btn s l" data-assist="summary">{{ ic('align-left') }} ساخت خلاصه</button><button type="button" class="btn s l" data-assist="title">{{ ic('heading') }} پیشنهاد عنوان</button>{% endif %}
+<button type="button" class="btn s l" id="tgl">{{ ic('code') }} HTML / پیش‌نمایش</button></div>
+<div id="prev" class="hide" style="border:1px solid var(--line);border-radius:12px;padding:14px;max-height:520px;overflow:auto;background:var(--card-2)"></div>
+<textarea class="in" name="content" id="f_content" rows="20">{{ p.content or '' }}</textarea>
+<label class="f" style="margin-top:10px"><span>خلاصه</span><textarea class="in" name="excerpt" id="f_excerpt" rows="2">{{ p.excerpt or '' }}</textarea></label></div>
+<div class="card"><h3>{{ ic('search') }} سئو</h3><label class="f"><span>توضیحات متا</span><input class="in" name="meta_description" id="f_meta" value="{{ m.meta_description or '' }}" maxlength="160"></label>
+<label class="f"><span>کلمات کلیدی</span><input class="in" name="keywords" value="{{ m.focus_keywords or '' }}"></label></div></div>
+<div><div class="card"><h3>{{ ic('send') }} انتشار</h3><label class="f"><span>وضعیت</span><select class="in" name="status"><option value="draft">پیش‌نویس</option><option value="publish" {{ 'selected' if p.status == 'publish' }}>منتشر شده</option></select></label>
+<button class="btn" style="width:100%;justify-content:center">{{ ic('save') }} ذخیره</button></div>
+<div class="card"><h3>{{ ic('image') }} تصویر شاخص</h3><img id="f_imgp" src="{{ img or '' }}" alt="" style="border-radius:12px;{{ '' if img else 'display:none' }}"><input type="hidden" name="image_id" id="f_img" value="{{ p.image_id or '' }}">
+<input class="in" type="file" name="image" accept="image/*" style="margin-top:8px">
+{% if ai_on %}<label class="f" style="margin-top:8px"><span>توصیف تصویر (انگلیسی بهتر است)</span><textarea class="in" id="ai_prompt" rows="3">{{ m.image_prompt or '' }}</textarea></label>
+<button type="button" class="btn l s" id="ai_imgbtn">{{ ic('image-plus') }} ساخت تصویر با هوش مصنوعی</button> <span id="ai_ist" class="small muted"></span>{% endif %}</div>
+<div class="card"><h3>{{ ic('folder') }} دسته‌ها</h3><div style="max-height:220px;overflow:auto">{% for c in cats %}<label class="small" style="display:block"><input type="checkbox" name="cats" value="{{ c.id }}" {{ 'checked' if c.id in sel }}> {{ c.name }}</label>{% else %}<span class="muted small">دسته‌ای تعریف نشده</span>{% endfor %}</div></div>
+</div></div></form>
+{% endblock %}
+{% block scripts %}<script>
+const $=id=>document.getElementById(id);
+async function genImage(prompt){$('ai_ist').innerHTML=ICON('loader')+' در حال ساخت تصویر…';const r=await post('/admin/blog/ai/image',{prompt,title:$('f_title').value});
+ if(r.ok){$('f_img').value=r.id;$('f_imgp').src=r.url;$('f_imgp').style.display='block';$('ai_ist').textContent='ساخته شد'}else $('ai_ist').textContent=r.message}
+$('ai_go')?.addEventListener('click',async()=>{const topic=$('ai_topic').value.trim();if(!topic)return alert('موضوع را وارد کنید');$('ai_go').disabled=true;$('ai_st').innerHTML=ICON('loader')+' در حال نوشتن مقاله (حدود یک دقیقه)…';
+ const r=await post('/admin/blog/ai/write',{topic,keywords:$('ai_kw').value,words:$('ai_words').value,tone:$('ai_tone').value,extra:$('ai_extra').value,lang:$('ai_lang').value});$('ai_go').disabled=false;
+ if(!r.ok){$('ai_st').textContent=r.message;return}$('f_title').value=r.title;$('f_slug').value=r.slug||'';$('f_content').value=r.content;$('f_excerpt').value=r.excerpt||'';$('f_meta').value=r.meta_description||'';
+ if($('ai_prompt'))$('ai_prompt').value=r.image_prompt||'';$('ai_st').textContent='مقاله آماده شد؛ بررسی و ذخیره کنید.';if($('ai_img').checked&&r.image_prompt)genImage(r.image_prompt)});
+$('ai_imgbtn')?.addEventListener('click',()=>{const p=$('ai_prompt').value.trim()||$('f_title').value;if(p)genImage(p)});
+document.querySelectorAll('[data-assist]').forEach(b=>b.onclick=async()=>{const ta=$('f_content');const sel=ta.value.substring(ta.selectionStart,ta.selectionEnd)||ta.value;if(!sel)return;b.disabled=true;
+ const r=await post('/admin/blog/ai/assist',{mode:b.dataset.assist,text:sel});b.disabled=false;if(!r.ok)return alert(r.message);
+ if(b.dataset.assist==='summary')$('f_excerpt').value=r.text;else if(b.dataset.assist==='title')alert(r.text);else if(ta.selectionStart!==ta.selectionEnd)ta.setRangeText(r.text);else ta.value=r.text});
+$('tgl').onclick=()=>{const p=$('prev'),t=$('f_content');if(p.classList.contains('hide')){p.innerHTML=t.value;p.classList.remove('hide');t.classList.add('hide')}else{p.classList.add('hide');t.classList.remove('hide')}};
+</script>{% endblock %}

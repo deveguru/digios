@@ -1,0 +1,18 @@
+{% extends "admin/base.html" %}{% from "admin/_m.html" import csrf_field with context %}
+{% block title %}دسترسی‌های شبکه{% endblock %}{% block h1 %}دسترسی کاربران به بخش‌های مدیریت سایت‌ها{% endblock %}
+{% block actions %}<a class="btn l" href="/mother/">{{ ic('arrow-right') }} داشبورد مادر</a>{% endblock %}
+{% block body %}
+<div class="alert info">{{ ic('info') }}<span>هر کاربر سایت اصلی را می‌توانید برای بخش‌های مشخصی از داشبورد مدیریت هر سایت (یا سایت اصلی) مجاز کنید. کاربر با حساب خودش در همین سایت وارد می‌شود و از «داشبورد مادر» فقط سایت‌ها و بخش‌های مجاز را می‌بیند. پشتیبان‌گیری فقط برای مدیران سایت است.</span></div>
+<form class="card" method="post">{{ csrf_field() }}<h3>{{ ic('user-plus') }} اعطای دسترسی</h3>
+<div class="g2"><label class="f"><span>کاربر (نام کاربری، موبایل یا ایمیل)</span><input class="in" name="login" required></label>
+<label class="f"><span>سایت‌ها</span><div class="row"><label class="small"><input type="checkbox" name="sites" value="0"> {{ names[0] }}</label>
+{% for s in sites %}<label class="small"><input type="checkbox" name="sites" value="{{ s.id }}"> {{ s.domain }}</label>{% endfor %}</div></label></div>
+<p class="small muted" style="margin:0 0 6px">بخش‌های مجاز</p>
+<div class="g4">{% for key, label, ep, icon, f in menu_all if key != 'backups' %}<label class="small" style="display:flex;gap:6px;align-items:center"><input type="checkbox" name="perms" value="{{ key }}">{{ ic(icon) }}{{ label }}</label>{% endfor %}</div>
+<button class="btn" style="margin-top:12px">{{ ic('shield-check') }} ثبت دسترسی</button></form>
+<div class="card tw"><h3>{{ ic('users') }} دسترسی‌های ثبت‌شده</h3><table class="t"><thead><tr><th>کاربر</th><th>سایت</th><th>بخش‌ها</th><th></th></tr></thead><tbody>
+{% for r in rows %}<tr><td><b>{{ r.display_name or r.username }}</b><div class="mono small muted">{{ r.username }}</div></td><td>{{ names.get(r.site_id, r.site_id) }}</td>
+<td>{% for p in r.perms or [] %}<span class="badge">{{ labels.get(p, p) }}</span> {% endfor %}</td>
+<td><form method="post">{{ csrf_field() }}<input type="hidden" name="action" value="delete"><input type="hidden" name="id" value="{{ r.id }}"><button class="btn s red">{{ ic('trash-2') }}</button></form></td></tr>
+{% else %}<tr><td colspan="4" class="muted">دسترسی‌ای ثبت نشده است.</td></tr>{% endfor %}</tbody></table></div>
+{% endblock %}

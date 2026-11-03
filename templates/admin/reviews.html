@@ -1,0 +1,9 @@
+{% extends "admin/base.html" %}{% from "admin/_m.html" import csrf_field with context %}
+{% block title %}دیدگاه‌ها{% endblock %}{% block h1 %}دیدگاه‌های محصولات{% endblock %}
+{% block body %}
+<div class="tabs"><a href="?" class="{{ 'on' if not request.args.status }}">همه</a>{% for k, l in [('pending','در انتظار'),('approved','تایید شده'),('spam','هرزنامه')] %}<a href="?status={{ k }}" class="{{ 'on' if request.args.status == k }}">{{ l }} ({{ fa(counts.get(k, 0)) }})</a>{% endfor %}</div>
+<div class="card tw"><table class="t small"><tbody>{% for r in rows %}<tr><td><b>{{ r.author }}</b><div class="muted">{{ jdt(r.created) }}</div></td><td><a href="/product/{{ url_slug(r.pslug or '') }}/" target="_blank">{{ r.pname|truncate(40) }}</a></td><td>{{ r.content }}{% if r.rating %} <span style="color:#f59e0b">{% for i in range(r.rating) %}{{ ic('star') }}{% endfor %}</span>{% endif %}</td>
+<td><form method="post" class="row">{{ csrf_field() }}<input type="hidden" name="id" value="{{ r.id }}">{% if r.status != 'approved' %}<button class="btn s green" name="action" value="approved">تایید</button>{% endif %}<button class="btn s l" name="action" value="spam">هرزنامه</button><button class="btn s red" name="action" value="delete">حذف</button></form>
+<form method="post" class="row" style="margin-top:4px">{{ csrf_field() }}<input type="hidden" name="id" value="{{ r.id }}"><input class="in" name="content" placeholder="پاسخ"><button class="btn s l" name="action" value="reply">پاسخ</button></form></td></tr>{% else %}<tr><td class="muted">دیدگاهی نیست.</td></tr>{% endfor %}</tbody></table></div>
+<div class="pager"><a href="?status={{ request.args.status or '' }}&page={{ page + 1 }}">صفحه بعد {{ ic('chevron-left') }}</a></div>
+{% endblock %}

@@ -1,0 +1,219 @@
+{% extends "admin/base.html" %}{% from "admin/_m.html" import csrf_field with context %}
+{% block title %}گزارش عملکرد و سلامت{% endblock %}{% block h1 %}{{ ic('activity') }} گزارش عملکرد، سرعت و سلامت سایت‌ها{% endblock %}
+{% block actions %}<a class="btn l" href="/mother/">{{ ic('arrow-right') }} داشبورد مادر</a>{% endblock %}
+{% block body %}
+{% set c = rep.compare or {} %}{% set b = rep.bench or {} %}
+<style>
+.pf{--s1:#2a78d6;--s2:#eb6834;--wp:#86b6ef;--good:#0ca30c;--bad:#d03b3b;--warn:#c98500;--grid:color-mix(in srgb,var(--ink) 9%,transparent);--axis:color-mix(in srgb,var(--ink) 55%,transparent)}
+[data-theme=dark] .pf{--s1:#3987e5;--s2:#d95926;--wp:#184f95;--good:#0ca30c;--bad:#e66767;--warn:#fab219}
+.pf .sites{display:flex;gap:8px;flex-wrap:wrap;align-items:center}.pf .sites a{padding:7px 14px;border-radius:12px;background:var(--card-2);border:1px solid var(--line);font-weight:700;font-size:.9em;color:var(--ink-2)}
+.pf .sites a.on{background:var(--brand);color:#fff;border-color:var(--brand)}
+.pf .tiles{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:14px;margin:14px 0}
+.pf .tile{background:var(--card);border:1px solid var(--line);border-radius:18px;padding:16px;box-shadow:var(--sh)}
+.pf .tile h4{margin:0 0 10px;font-size:.88em;color:var(--ink-2);display:flex;gap:8px;align-items:center}.pf .tile h4 .ic{width:18px;height:18px;color:var(--brand)}
+.pf .tile .big{font-size:1.9em;font-weight:900;line-height:1.1;font-variant-numeric:tabular-nums}.pf .tile .big small{font-size:.45em;font-weight:700;color:var(--ink-2)}
+.pf .tile .vs{display:flex;justify-content:space-between;gap:8px;margin-top:10px;font-size:.82em;color:var(--ink-2)}.pf .tile .vs b{color:var(--ink);font-variant-numeric:tabular-nums}
+.pf .delta{display:inline-flex;gap:5px;align-items:center;font-weight:800;font-size:.85em;padding:3px 10px;border-radius:99px;margin-top:8px}
+.pf .delta .ic{width:15px;height:15px}.pf .delta.good{color:var(--good);background:color-mix(in srgb,var(--good) 12%,transparent)}
+.pf .delta.bad{color:var(--bad);background:color-mix(in srgb,var(--bad) 12%,transparent)}.pf .delta.flat{color:var(--ink-2);background:var(--card-2)}
+.pf .chart{position:relative;width:100%;height:240px}.pf .chart svg{width:100%;height:100%;display:block;overflow:visible}
+.pf .chart .tip{position:absolute;pointer-events:none;background:var(--card);border:1px solid var(--line);border-radius:12px;padding:8px 12px;box-shadow:var(--sh);font-size:.8em;min-width:140px;display:none;z-index:5}
+.pf .chart .tip .r{display:flex;align-items:center;gap:8px;justify-content:space-between}.pf .chart .tip .r i{width:14px;height:3px;border-radius:2px;display:inline-block}
+.pf .chart .tip b{font-variant-numeric:tabular-nums;font-size:1.05em}.pf .chart .tip .h{color:var(--ink-2);margin-bottom:4px}
+.pf .legend{display:flex;gap:14px;flex-wrap:wrap;font-size:.82em;color:var(--ink-2);margin:0 0 8px}.pf .legend span{display:inline-flex;align-items:center;gap:6px}
+.pf .legend i{width:16px;height:4px;border-radius:2px;display:inline-block}.pf .legend i.box{height:10px;width:16px;border-radius:3px}
+.pf .bars .row2{display:grid;grid-template-columns:120px 1fr;gap:10px;align-items:center;margin:10px 0}.pf .bars .lbl{font-size:.85em;font-weight:700}
+.pf .bars .track{display:flex;flex-direction:column;gap:4px}.pf .bars .bar{height:14px;border-radius:0 4px 4px 0;position:relative;min-width:2px;cursor:default}
+[dir=rtl] .pf .bars .bar{border-radius:4px 0 0 4px}.pf .bars .bar span{position:absolute;inset-inline-start:calc(100% + 6px);top:50%;transform:translateY(-50%);font-size:.75em;white-space:nowrap;color:var(--ink-2);font-variant-numeric:tabular-nums}
+.pf .note{font-size:.8em;color:var(--ink-2);line-height:1.9}.pf h3 .ic{color:var(--brand)}
+.pf .est{font-size:.75em;font-weight:700;color:var(--warn);background:color-mix(in srgb,var(--warn) 12%,transparent);padding:2px 8px;border-radius:99px;margin-inline-start:6px}
+.pf td.num,.pf th.num{text-align:end;font-variant-numeric:tabular-nums}
+@media(max-width:640px){.pf .bars .row2{grid-template-columns:1fr}.pf .chart{height:200px}}
+</style>
+<div class="pf">
+<div class="card"><div class="row sp" style="flex-wrap:wrap;gap:10px">
+  <div class="sites"><a href="?site=0&days={{ days }}" class="{{ 'on' if not sid }}">{{ ic('crown') }} سایت اصلی</a>{% for s in summaries if not s.main %}<a href="?site={{ s.id }}&days={{ days }}" class="{{ 'on' if sid == s.id }}">{{ s.name }}</a>{% endfor %}</div>
+  <form method="get" class="row" style="gap:6px"><input type="hidden" name="site" value="{{ sid }}"><select class="in" name="days" onchange="this.form.submit()" style="width:auto">{% for d in [14, 30, 45, 60, 90, 120] %}<option value="{{ d }}" {{ 'selected' if d == days }}>{{ fa(d) }} روز اخیر</option>{% endfor %}</select></form>
+</div>
+{% if not sid %}<form method="post" action="/mother/perf/run" class="row" style="gap:6px;margin-top:10px;flex-wrap:wrap">{{ csrf_field() }}
+  <button class="btn s" name="what" value="bench" {{ 'disabled' if bench_running }}>{{ ic('gauge') }} {{ 'آزمون سرعت در حال اجرا…' if bench_running else 'اجرای دوباره آزمون سرعت' }}</button>
+  <button class="btn s l" name="what" value="logs" {{ 'disabled' if import_running }}>{{ ic('file-text') }} {{ 'در حال خواندن گزارش‌ها…' if import_running else 'خواندن دوباره گزارش‌های وب‌سرور' }}</button>
+  <button class="btn s l" name="what" value="uptime">{{ ic('radar') }} بررسی دسترس‌پذیری همه سایت‌ها</button>
+  <span class="small muted">به‌روزرسانی: {{ rep.generated }}{% if rep.imported_at %} — آخرین خواندن گزارش وب‌سرور: {{ rep.imported_at }}{% endif %}</span></form>{% endif %}
+</div>
+
+{# ---------------- all sites #}
+<div class="card tw"><h3>{{ ic('network') }} خلاصه همه سایت‌ها (۲۴ ساعت اخیر)</h3>
+<table class="t"><thead><tr><th>سایت</th><th>دسترس‌پذیری</th><th class="num">میانگین پاسخ</th><th class="num">۹۵٪ پاسخ‌ها زیر</th><th class="num">خطای سرور</th><th class="num">بازدیدکننده در روز</th><th class="num">سفارش پرداخت‌شده در روز</th><th class="num">خطای مرورگر (۷ روز)</th><th></th></tr></thead><tbody>
+{% for s in summaries %}<tr><td><b>{{ s.name }}</b>{% if s.main %} {{ tag('owner', 'سایت اصلی') }}{% endif %}<div class="small muted mono">{{ s.domain or '' }}</div></td>
+{% if s.error %}<td colspan="7">{{ tag('error', 'گزارش دریافت نشد') }} <span class="small muted">{{ s.error }}</span></td>
+{% else %}<td>{% if s.uptime_24h is not none %}{{ tag('ok' if s.uptime_24h >= 99.5 else ('pending_review' if s.uptime_24h >= 97 else 'fail'), fa(s.uptime_24h) ~ '٪') }}{% else %}<span class="muted small">هنوز بررسی نشده</span>{% endif %}</td>
+<td class="num">{{ fa(s.avg_ms) ~ ' ms' if s.avg_ms is not none else '—' }}</td><td class="num">{{ fa(s.p95) ~ ' ms' if s.p95 is not none else '—' }}</td>
+<td class="num">{{ (fa(s.err_rate_24h) ~ '٪') if s.err_rate_24h is not none else '—' }}</td><td class="num">{{ fa(s.visitors_day) if s.visitors_day is not none else '—' }}</td>
+<td class="num">{{ fa(s.orders_day) if s.orders_day is not none else '—' }}</td><td class="num">{{ fa(s.js_errors_7d or 0) }}</td>{% endif %}
+<td><a class="btn s l" href="?site={{ s.id }}&days={{ days }}">جزئیات</a></td></tr>{% endfor %}</tbody></table></div>
+
+{% if rep.error %}<div class="alert error">گزارش این سایت دریافت نشد: {{ rep.error }}</div>{% else %}
+<h2 style="margin:22px 0 4px">{{ name }}</h2>
+{% if rep.cutover %}<p class="note">{{ ic('git-compare') }} مقایسه «وردپرس قبلی» (۳۰ روز آخر قبل از انتقال) با «پلتفرم جدید» (از لحظه انتقال در {{ rep.cutover_j }} تا الان؛ {{ fa(c.after_days) }} روز).
+{% if c.estimated %}<span class="est">برآورد اولیه — هنوز کمتر از ۳ روز از انتقال گذشته؛ اعداد روزانه با گذشت زمان دقیق‌تر می‌شوند</span>{% endif %}</p>{% endif %}
+
+{# ---------------- verdict tiles #}
+{% macro delta(v, good_when='up', unit='٪') -%}{% if v is none %}<span class="delta flat">{{ ic('minus') }} بدون داده کافی</span>
+{%- else %}{% set up = v > 0 %}{% set good = (up and good_when == 'up') or ((not up) and good_when == 'down') %}{% if v|abs < 1 %}<span class="delta flat">{{ ic('equal') }} تقریباً بدون تغییر</span>
+{%- else %}<span class="delta {{ 'good' if good else 'bad' }}">{{ ic('trending-up' if up else 'trending-down') }}{{ fa(v|abs) }}{{ unit }} {{ 'بیشتر' if up else 'کمتر' }} — {{ 'بهتر' if good else 'بدتر' }}</span>{% endif %}{% endif %}{%- endmacro %}
+<div class="tiles">
+  <div class="tile"><h4>{{ ic('gauge') }} سرعت ساخت صفحه در سرور</h4>
+    {% if b.speedup %}<div class="big">{{ fa(b.speedup) }}<small> برابر سریع‌تر</small></div>
+    <div class="vs"><span>وردپرس: <b>{{ fa(b.wp_avg) }} ms</b></span><span>پلتفرم: <b>{{ fa(b.plat_avg) }} ms</b></span></div>
+    <span class="delta good">{{ ic('zap') }} میانگین {{ fa(((b.rows|selectattr('wp_ms')|list)|length)) }} صفحه پرکاربرد</span>
+    {% else %}<div class="big">{{ fa(rep.speed_24h.avg) ~ ' ms' if rep.speed_24h.avg else '—' }}</div><div class="vs"><span>میانگین پاسخ ۲۴ ساعت اخیر</span></div>{% endif %}</div>
+  <div class="tile"><h4>{{ ic('timer') }} پاسخ واقعی به کاربران (۲۴ ساعت)</h4>
+    <div class="big">{{ fa(rep.speed_24h.p50) if rep.speed_24h.p50 is not none else '—' }}<small> ms میانه</small></div>
+    <div class="vs"><span>۹۵٪ زیر <b>{{ fa(rep.speed_24h.p95) if rep.speed_24h.p95 is not none else '—' }} ms</b></span><span>درخواست: <b>{{ fa(rep.speed_24h.n) }}</b></span></div></div>
+  {% if c %}
+  <div class="tile"><h4>{{ ic('users') }} بازدیدکننده یکتا {{ ('در ' ~ fa(c.visitors.window) ~ ' ساعت یکسان') if c.visitors.window else 'در روز' }}{% if c.visitors.estimated %}<span class="est">برآورد</span>{% endif %}</h4>
+    <div class="big">{{ fa(c.visitors.platform) if c.visitors.platform is not none else '—' }}</div>
+    <div class="vs"><span>قبل (وردپرس): <b>{{ fa(c.visitors.wp) if c.visitors.wp is not none else '—' }}</b></span></div>{{ delta(c.visitors.delta) }}</div>
+  <div class="tile"><h4>{{ ic('shopping-bag') }} سفارش پرداخت‌شده {{ ('در ' ~ fa(c.orders.window) ~ ' ساعت یکسان') if c.orders.window else 'در روز' }}</h4>
+    <div class="big">{{ fa(c.orders.platform) }}</div>
+    <div class="vs"><span>قبل: <b>{{ fa(c.orders.wp) }}</b></span><span>فروش روزانه: <b>{{ money(c.revenue.platform) }}</b></span></div>{{ delta(c.orders.delta) }}</div>
+  <div class="tile"><h4>{{ ic('server-crash') }} نرخ خطای سرور (۵xx)</h4>
+    <div class="big">{{ (fa(c.err5.platform) ~ '٪') if c.err5.platform is not none else '—' }}</div>
+    <div class="vs"><span>قبل (وردپرس): <b>{{ (fa(c.err5.wp) ~ '٪') if c.err5.wp is not none else '—' }}</b></span></div>{{ delta(c.err5.delta, 'down') }}</div>
+  <div class="tile"><h4>{{ ic('credit-card') }} سفارش‌های پرداخت‌نشده یا ناموفق</h4>
+    <div class="big">{{ (fa(c.unpaid.platform) ~ '٪') if c.unpaid.platform is not none else '—' }}</div>
+    <div class="vs"><span>قبل: <b>{{ (fa(c.unpaid.wp) ~ '٪') if c.unpaid.wp is not none else '—' }}</b></span><span>از کل سفارش‌های ثبت‌شده</span></div>
+    {{ delta((c.unpaid.platform - c.unpaid.wp) if (c.unpaid.platform is not none and c.unpaid.wp is not none) else none, 'down', ' واحد درصد') }}</div>
+  {% endif %}
+  <div class="tile"><h4>{{ ic('radar') }} دسترس‌پذیری</h4>
+    <div class="big">{{ (fa(rep.uptime['24h'].pct) ~ '٪') if rep.uptime['24h'].pct is not none else '—' }}</div>
+    <div class="vs"><span>۷ روز: <b>{{ (fa(rep.uptime['7d'].pct) ~ '٪') if rep.uptime['7d'].pct is not none else '—' }}</b></span><span>بررسی‌ها: <b>{{ fa(rep.uptime['7d'].checks) }}</b></span></div></div>
+</div>
+
+{% if rep.window %}{% set w = rep.window %}
+<div class="card tw"><h3>{{ ic('clock') }} مقایسه در ساعت‌های یکسان (منصفانه‌ترین مقایسه تا کامل شدن روزها)</h3>
+<p class="note">پلتفرم: از {{ w.from }} تا {{ w.to }} ({{ fa(w.hours) }} ساعت) — در برابر میانگین همین ساعت‌ها در ۷ روز قبل از انتقال روی وردپرس.</p>
+<table class="t"><thead><tr><th>شاخص</th><th class="num">وردپرس (میانگین ۷ روز، همین ساعت‌ها)</th><th class="num">پلتفرم</th><th>تغییر</th></tr></thead><tbody>
+{% for r in w.rows %}<tr><td>{{ r.name }}</td><td class="num">{{ fa(r.wp) if r.wp is not none else '—' }}</td><td class="num">{{ fa(r.platform) if r.platform is not none else '—' }}</td>
+<td>{{ delta(r.delta, 'down' if r.name == 'خطای سرور' else 'up') }}</td></tr>{% endfor %}</tbody></table></div>{% endif %}
+
+{# ---------------- speed #}
+<div class="g2" style="grid-template-columns:1fr 1fr;align-items:start">
+<div class="card"><h3>{{ ic('gauge') }} زمان ساخت هر صفحه: وردپرس قبلی در برابر پلتفرم</h3>
+{% if b.rows %}<div class="legend"><span><i class="box" style="background:var(--wp)"></i>وردپرس (قبلی)</span><span><i class="box" style="background:var(--s1)"></i>پلتفرم جدید</span></div>
+{% set mx = ([b.rows|map(attribute='wp_ms')|reject('none')|list|max if b.rows|map(attribute='wp_ms')|reject('none')|list else 0, b.rows|map(attribute='plat_ms')|reject('none')|list|max if b.rows|map(attribute='plat_ms')|reject('none')|list else 1])|max or 1 %}
+<div class="bars">{% for r in b.rows %}<div class="row2"><div class="lbl">{{ r.name }}</div><div class="track">
+  {% if r.wp_ms %}<div class="bar" style="width:{{ (r.wp_ms / mx * 85)|round(1) }}%;background:var(--wp)" title="وردپرس: {{ r.wp_ms }} ms"><span>{{ fa(r.wp_ms) }} ms</span></div>{% endif %}
+  <div class="bar" style="width:{{ ((r.plat_ms or 0) / mx * 85)|round(1) }}%;background:var(--s1)" title="پلتفرم: {{ r.plat_ms }} ms"><span>{{ fa(r.plat_ms) if r.plat_ms is not none else '—' }} ms{% if r.wp_ms and r.plat_ms %} — {{ fa((r.wp_ms / r.plat_ms)|round(1)) }}× سریع‌تر{% endif %}</span></div>
+</div></div>{% endfor %}</div>
+<p class="note">آزمون: {{ b.at_j }}{% if b.wp_at and b.wp_at != b.at %} — اندازه‌گیری وردپرس: {{ b.wp_at }}{% endif %}. هر صفحه {{ fa(b.runs or 6) }} بار روی همین سرور ساخته شد و میانه زمان‌ها آمده است. وردپرس بدون کش صفحه و با opcache گرم PHP اندازه‌گیری شد، پلتفرم مستقیم روی پورت برنامه. اعداد وردپرس برای همیشه نگه داشته می‌شوند، حتی بعد از حذف وردپرس.</p>
+<details><summary class="small">جدول کامل (شامل زمان از طریق دامنه عمومی)</summary><table class="t small"><thead><tr><th>صفحه</th><th class="num">وردپرس</th><th class="num">پلتفرم</th><th class="num">پلتفرم از دامنه</th><th class="num">حجم وردپرس</th><th class="num">حجم پلتفرم</th></tr></thead><tbody>
+{% for r in b.rows %}<tr><td>{{ r.name }} <span class="mono muted small">{{ r.url|urldecode|truncate(40) }}</span></td><td class="num">{{ fa(r.wp_ms) if r.wp_ms else '—' }}</td><td class="num">{{ fa(r.plat_ms) if r.plat_ms is not none else '—' }}</td><td class="num">{{ fa(r.public_ms) if r.public_ms is not none else '—' }}</td>
+<td class="num">{{ fa(((r.wp_bytes or 0) / 1024)|round|int) }} KB</td><td class="num">{{ fa(((r.plat_bytes or 0) / 1024)|round|int) }} KB</td></tr>{% endfor %}</tbody></table></details>
+{% else %}<p class="muted">آزمون سرعت هنوز اجرا نشده است.</p>{% endif %}</div>
+
+<div class="card"><h3>{{ ic('activity') }} زمان پاسخ صفحات در ۷۲ ساعت اخیر</h3>
+<div class="legend"><span><i style="background:var(--s1)"></i>میانگین</span><span><i style="background:var(--s2)"></i>۹۵٪ درخواست‌ها زیر این زمان</span></div>
+<div class="chart" id="chSpeed"></div>
+<table class="t small" style="margin-top:10px"><thead><tr><th>نوع درخواست (۷ روز)</th><th class="num">تعداد</th><th class="num">میانگین</th><th class="num">میانه</th><th class="num">۹۵٪</th><th class="num">خطای سرور</th></tr></thead><tbody>
+{% for k, l in [('page','صفحات فروشگاه'),('api','درخواست‌های داده'),('admin','پنل مدیریت')] %}{% set x = rep.speed_kinds[k] %}<tr><td>{{ l }}</td><td class="num">{{ fa(x.n) }}</td><td class="num">{{ fa(x.avg) if x.avg is not none else '—' }}</td><td class="num">{{ fa(x.p50) if x.p50 is not none else '—' }}</td><td class="num">{{ fa(x.p95) if x.p95 is not none else '—' }}</td><td class="num">{{ fa(x.e5) }}</td></tr>{% endfor %}</tbody></table></div>
+</div>
+
+{# ---------------- traffic & orders #}
+<div class="g2" style="grid-template-columns:1fr 1fr;align-items:start">
+<div class="card"><h3>{{ ic('users') }} بازدیدکننده یکتای روزانه</h3><div class="legend"><span><i class="box" style="background:var(--grid)"></i>دوره وردپرس</span><span><i style="background:var(--s1)"></i>بازدیدکننده (بدون ربات‌ها)</span></div><div class="chart" id="chVis"></div></div>
+<div class="card"><h3>{{ ic('shopping-bag') }} سفارش پرداخت‌شده روزانه</h3><div class="legend"><span><i class="box" style="background:var(--grid)"></i>دوره وردپرس</span><span><i style="background:var(--s1)"></i>سفارش پرداخت‌شده</span></div><div class="chart" id="chOrd"></div></div>
+</div>
+
+{# ---------------- errors #}
+<div class="g2" style="grid-template-columns:1fr 1fr;align-items:start">
+<div class="card"><h3>{{ ic('server-crash') }} نرخ خطای سرور روزانه (درصد درخواست‌ها)</h3><div class="legend"><span><i class="box" style="background:var(--grid)"></i>دوره وردپرس</span><span><i style="background:var(--s1)"></i>خطای ۵xx</span></div><div class="chart" id="chErr"></div></div>
+<div class="card"><h3>{{ ic('shield-alert') }} خطاهایی که کاربران می‌بینند</h3>
+<table class="t small"><thead><tr><th>شاخص</th><th class="num">وردپرس قبلی</th><th class="num">پلتفرم</th></tr></thead><tbody>
+{% if c %}<tr><td>خطای سرور (همه درخواست‌ها)</td><td class="num">{{ (fa(c.err5.wp) ~ '٪') if c.err5.wp is not none else '—' }}</td><td class="num">{{ (fa(c.err5.platform) ~ '٪') if c.err5.platform is not none else '—' }}</td></tr>
+<tr><td>خطای سرور در صفحات</td><td class="num">{{ (fa(c.err5_pages.wp) ~ '٪') if c.err5_pages.wp is not none else '—' }}</td><td class="num">{{ (fa(c.err5_pages.platform) ~ '٪') if c.err5_pages.platform is not none else '—' }}</td></tr>
+<tr><td>صفحه پیدا نشد (۴۰۴ و مشابه)</td><td class="num">{{ (fa(c.err4.wp) ~ '٪') if c.err4.wp is not none else '—' }}</td><td class="num">{{ (fa(c.err4.platform) ~ '٪') if c.err4.platform is not none else '—' }}</td></tr>
+<tr><td>سفارش پرداخت‌نشده یا ناموفق</td><td class="num">{{ (fa(c.unpaid.wp) ~ '٪') if c.unpaid.wp is not none else '—' }}</td><td class="num">{{ (fa(c.unpaid.platform) ~ '٪') if c.unpaid.platform is not none else '—' }}</td></tr>
+<tr><td>نرخ تبدیل (سفارش به بازدیدکننده)</td><td class="num">{{ (fa(c.conversion.wp) ~ '٪') if c.conversion.wp is not none else '—' }}</td><td class="num">{{ (fa(c.conversion.platform) ~ '٪') if c.conversion.platform is not none else '—' }}</td></tr>{% endif %}
+</tbody></table>
+<div class="row" style="gap:8px;margin-top:10px;flex-wrap:wrap">
+  {{ tag('fail' if (rep.errors.counts.get('5xx', 0)) else 'ok', 'خطای سرور ۷ روز: ' ~ fa(rep.errors.counts.get('5xx', 0))) }}
+  {{ tag('fail' if (rep.errors.counts.get('js', 0) > 20) else 'ok', 'خطای مرورگر ۷ روز: ' ~ fa(rep.errors.counts.get('js', 0))) }}
+  {{ tag('ok' if not rep.errors.payments.failed else 'pending_review', 'پرداخت ناموفق درگاه ۷ روز: ' ~ fa(rep.errors.payments.failed) ~ ' از ' ~ fa(rep.errors.payments.failed + rep.errors.payments.paid)) }}
+  {{ tag('ok' if not rep.errors.otp.failed else 'pending_review', 'پیامک ورود ناموفق ۷ روز: ' ~ fa(rep.errors.otp.failed) ~ ' از ' ~ fa(rep.errors.otp.all)) }}
+</div></div>
+</div>
+
+<div class="card tw"><h3>{{ ic('bug') }} جزئیات خطاها در ۷ روز اخیر</h3>
+{% if rep.errors.top %}<table class="t small"><thead><tr><th>نوع</th><th>آدرس</th><th>پیام</th><th class="num">تعداد</th><th>آخرین بار</th></tr></thead><tbody>
+{% for e in rep.errors.top %}<tr><td>{{ tag(e.kind, {'5xx':'خطای سرور','js':'خطای مرورگر'}.get(e.kind, e.kind), color={'5xx':'#d03b3b','js':'#c98500'}.get(e.kind)) }}</td><td class="mono" style="max-width:220px;overflow:hidden;text-overflow:ellipsis">{{ e.path|urldecode }}</td>
+<td class="mono" style="max-width:420px;overflow:hidden;text-overflow:ellipsis" title="{{ e.msg }}">{{ e.msg|truncate(140) }}</td><td class="num">{{ fa(e.n) }}</td><td class="small">{{ e.last }}</td></tr>{% endfor %}</tbody></table>
+{% else %}<p>{{ tag('ok', 'در ۷ روز اخیر هیچ خطایی ثبت نشده است') }}</p>{% endif %}</div>
+
+{# ---------------- uptime #}
+<div class="card"><h3>{{ ic('radar') }} دسترس‌پذیری و زمان پاسخ از بیرون (هر ۵ دقیقه)</h3>
+<div class="legend"><span><i style="background:var(--s1)"></i>زمان پاسخ /healthz</span><span><i class="box" style="background:var(--bad)"></i>قطعی</span></div>
+<div class="chart" id="chUp" style="height:180px"></div>
+{% if rep.uptime.down %}<p class="small">آخرین قطعی‌ها: {% for d in rep.uptime.down %}{{ tag('fail', d.at ~ ' (' ~ (d.status or 'timeout') ~ ')') }} {% endfor %}</p>{% else %}<p class="small">{{ tag('ok', 'در ۷ روز اخیر قطعی ثبت نشده است') }}</p>{% endif %}</div>
+
+{# ---------------- data table (accessible view) #}
+<div class="card tw"><details><summary><b>{{ ic('table') }} جدول روزانه کامل</b></summary>
+<table class="t small"><thead><tr><th>روز</th><th>دوره</th><th class="num">بازدیدکننده</th><th class="num">صفحه</th><th class="num">ربات</th><th class="num">سفارش</th><th class="num">پرداخت‌شده</th><th class="num">فروش</th><th class="num">خطای سرور</th><th class="num">ساعت پوشش</th></tr></thead><tbody>
+{% for d in rep.daily|reverse %}<tr><td>{{ d.j }}</td><td>{{ tag(d.era, {'wp':'وردپرس','platform':'پلتفرم','mixed':'روز انتقال'}.get(d.era), color={'wp':'#64748b','platform':'#2a78d6','mixed':'#7c3aed'}.get(d.era)) }}</td>
+<td class="num">{{ fa(d.visitors) }}</td><td class="num">{{ fa(d.pages) }}</td><td class="num">{{ fa(d.bots) }}</td><td class="num">{{ fa(d.orders) }}</td><td class="num">{{ fa(d.paid) }}</td><td class="num">{{ money(d.revenue) }}</td><td class="num">{{ fa(d.e5) }}</td><td class="num">{{ fa(d.hours|round(1)) }}</td></tr>{% endfor %}</tbody></table></details></div>
+
+<div class="card note"><b>{{ ic('info') }} روش اندازه‌گیری</b><br>
+• بازدید، ربات‌ها و خطاهای سرور در هر دو دوره با یک روش از گزارش‌های وب‌سرور (access log) شمرده می‌شوند، پس مقایسه منصفانه است. بازدیدکننده یکتا یعنی ترکیب یکتای آی‌پی و مرورگر در هر روز، بدون ربات‌ها و فایل‌های ثابت.<br>
+• سفارش‌ها از دیتابیس خوانده می‌شوند (همه سفارش‌های وردپرس منتقل شده‌اند). پرداخت‌شده یعنی وضعیت در حال انجام، بسته‌بندی، ارسال یا تکمیل. پایه «قبل» میانگین ۳۰ روز آخر وردپرس است.<br>
+• زمان پاسخ زنده را خود برنامه برای هر درخواست اندازه می‌گیرد. دسترس‌پذیری را داشبورد مادر هر ۵ دقیقه از بیرون بررسی می‌کند. خطاهای مرورگر کاربران با یک اسکریپت کوچک گزارش می‌شوند.<br>
+• روزهای ناقص (روز انتقال و امروز) بر اساس ساعت‌های پوشش‌داده‌شده به ۲۴ ساعت تبدیل می‌شوند.
+</div>
+{% endif %}
+</div>
+{% endblock %}
+{% block scripts %}{% if not rep.error %}<script>
+const REP={{ {'daily': rep.daily, 'speed': rep.speed_series, 'up': rep.uptime.series, 'cut': rep.cutover}|tojson }};
+const nf=(v,d=0)=>v==null?'—':fa(Number(v).toLocaleString('en-US',{maximumFractionDigits:d}));
+function css(n){return getComputedStyle(document.querySelector('.pf')).getPropertyValue(n).trim()}
+/* line chart: thin 2px lines, recessive grid, crosshair + one tooltip for every series, optional shaded "before" band */
+function lineChart(el,{labels,series,yfmt=v=>nf(v),band=null,bad=null}){
+  if(!el)return;const W=el.clientWidth||600,Hh=el.clientHeight||240,P={l:46,r:12,t:12,b:26},iw=W-P.l-P.r,ih=Hh-P.t-P.b,n=labels.length;
+  if(!n){el.innerHTML='<p class="muted small" style="padding:20px">هنوز داده‌ای ثبت نشده است.</p>';return}
+  const all=series.flatMap(s=>s.values.filter(v=>v!=null));let mx=Math.max(1,...all);const step=Math.pow(10,Math.floor(Math.log10(mx)));mx=Math.ceil(mx/step)*step;
+  const rtl=document.documentElement.dir==='rtl',X=i=>{const x=n<2?iw/2:i*(iw/(n-1));return P.l+(rtl?iw-x:x)},Y=v=>P.t+ih-(v/mx)*ih;
+  let s=`<svg viewBox="0 0 ${W} ${Hh}" role="img">`;
+  if(band!=null&&band>0){const x1=X(0),x2=X(Math.min(band,n-1));s+=`<rect x="${Math.min(x1,x2)}" y="${P.t}" width="${Math.abs(x2-x1)}" height="${ih}" fill="${css('--grid')}"/>`;
+    const xc=X(Math.min(band,n-1));s+=`<line x1="${xc}" x2="${xc}" y1="${P.t}" y2="${P.t+ih}" stroke="${css('--axis')}" stroke-dasharray="3 3"/><text x="${xc}" y="${P.t+10}" font-size="10" fill="${css('--axis')}" text-anchor="${rtl?'end':'start'}" dx="${rtl?-4:4}">انتقال</text>`}
+  for(let k=0;k<=4;k++){const v=mx*k/4,y=Y(v);s+=`<line x1="${P.l}" x2="${P.l+iw}" y1="${y}" y2="${y}" stroke="${css('--grid')}"/><text x="${rtl?W-4:P.l-6}" y="${y+3}" font-size="10" fill="${css('--axis')}" text-anchor="${rtl?'end':'end'}">${yfmt(v)}</text>`}
+  const every=Math.max(1,Math.ceil(n/7));labels.forEach((l,i)=>{if(i%every===0||i===n-1)s+=`<text x="${X(i)}" y="${Hh-6}" font-size="10" fill="${css('--axis')}" text-anchor="middle">${l}</text>`});
+  if(bad)bad.forEach((b,i)=>{if(b)s+=`<rect x="${X(i)-2}" y="${P.t}" width="4" height="${ih}" fill="${css('--bad')}" opacity=".55"/>`});
+  series.forEach(se=>{let d='',pen=false;se.values.forEach((v,i)=>{if(v==null){pen=false;return}d+=(pen?'L':'M')+X(i).toFixed(1)+','+Y(v).toFixed(1);pen=true});
+    s+=`<path d="${d}" fill="none" stroke="${se.color}" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>`;
+    if(n<=40)se.values.forEach((v,i)=>{if(v!=null)s+=`<circle cx="${X(i)}" cy="${Y(v)}" r="2.5" fill="${se.color}"/>`})});
+  s+=`<line class="xh" x1="0" x2="0" y1="${P.t}" y2="${P.t+ih}" stroke="${css('--axis')}" stroke-width="1" style="display:none"/>`;
+  series.forEach((se,j)=>s+=`<circle class="dot${j}" r="4.5" fill="${se.color}" stroke="${css('--card')||'#fff'}" stroke-width="2" style="display:none"/>`);
+  s+=`<rect x="${P.l}" y="${P.t}" width="${iw}" height="${ih}" fill="transparent" class="hit"/></svg><div class="tip"></div>`;el.innerHTML=s;
+  const svg=el.querySelector('svg'),tip=el.querySelector('.tip'),xh=el.querySelector('.xh'),hit=el.querySelector('.hit');
+  const move=e=>{const r=svg.getBoundingClientRect(),px=(e.clientX-r.left)*(W/r.width);let best=0,bd=1e9;for(let i=0;i<n;i++){const d=Math.abs(X(i)-px);if(d<bd){bd=d;best=i}}
+    xh.setAttribute('x1',X(best));xh.setAttribute('x2',X(best));xh.style.display='';
+    series.forEach((se,j)=>{const c=el.querySelector('.dot'+j),v=se.values[best];if(v==null){c.style.display='none';return}c.setAttribute('cx',X(best));c.setAttribute('cy',Y(v));c.style.display=''});
+    tip.replaceChildren();const h=document.createElement('div');h.className='h';h.textContent=labels[best];tip.append(h);
+    series.forEach(se=>{const row=document.createElement('div');row.className='r';const k=document.createElement('span');const i=document.createElement('i');i.style.background=se.color;k.append(i,' '+se.name);
+      const b=document.createElement('b');b.textContent=se.values[best]==null?'—':(se.fmt||yfmt)(se.values[best]);row.append(b,k);tip.append(row)});
+    if(bad&&bad[best]){const w=document.createElement('div');w.style.color=css('--bad');w.textContent='قطعی';tip.append(w)}
+    tip.style.display='block';const tx=(X(best)/W)*r.width;tip.style.left=Math.min(r.width-tip.offsetWidth-4,Math.max(4,tx-tip.offsetWidth/2))+'px';tip.style.top='4px'};
+  hit.addEventListener('pointermove',move);hit.addEventListener('pointerleave',()=>{tip.style.display='none';xh.style.display='none';el.querySelectorAll('[class^=dot]').forEach(c=>c.style.display='none')});
+}
+function draw(){
+  const D=REP.daily,lab=D.map(d=>d.j.slice(5)),cutIdx=REP.cut?D.findIndex(d=>d.era!=='wp'):-1,band=cutIdx>0?cutIdx:null;
+  const scale=d=>d.hours>0&&d.hours<23?24/d.hours:1;
+  lineChart(document.getElementById('chVis'),{labels:lab,band,series:[{name:'بازدیدکننده',color:css('--s1'),values:D.map(d=>d.visitors?Math.round(d.visitors*(d.era==='mixed'?1:scale(d))):null)}]});
+  lineChart(document.getElementById('chOrd'),{labels:lab,band,series:[{name:'سفارش پرداخت‌شده',color:css('--s1'),values:D.map(d=>d.paid!=null?Math.round(d.paid*(d.era==='mixed'?1:scale(d))):null)}]});
+  lineChart(document.getElementById('chErr'),{labels:lab,band,yfmt:v=>nf(v,2)+'٪',series:[{name:'خطای سرور',color:css('--s1'),values:D.map(d=>d.err_rate)}]});
+  const S=REP.speed;lineChart(document.getElementById('chSpeed'),{labels:S.map(x=>x.t.slice(5)),yfmt:v=>nf(v)+' ms',series:[{name:'میانگین',color:css('--s1'),values:S.map(x=>x.avg)},{name:'۹۵٪ زیر',color:css('--s2'),values:S.map(x=>x.p95)}]});
+  const U=REP.up;lineChart(document.getElementById('chUp'),{labels:U.map(x=>x.t.slice(5)),yfmt:v=>nf(v)+' ms',bad:U.map(x=>!x.ok),series:[{name:'زمان پاسخ',color:css('--s1'),values:U.map(x=>x.ok?x.ms:null)}]});
+}
+draw();let rz;addEventListener('resize',()=>{clearTimeout(rz);rz=setTimeout(draw,200)});
+new MutationObserver(draw).observe(document.documentElement,{attributes:true,attributeFilter:['data-theme']});
+</script>{% endif %}{% endblock %}

@@ -1,0 +1,17 @@
+{% extends "admin/base.html" %}{% from "admin/_m.html" import csrf_field, sw with context %}
+{% block title %}رنگ‌بندی و مگامنو{% endblock %}{% block h1 %}رنگ‌بندی سایت و مگامنو{% endblock %}
+{% block body %}
+<form class="card" method="post" id="palf">{{ csrf_field() }}<input type="hidden" name="section" value="palette"><h3>{{ ic('palette') }} پالت رنگی</h3>
+<div class="swatches" style="margin-bottom:14px">{% for name, p in presets.items() %}<button type="button" data-p='{{ p|tojson }}'><i style="background:{{ p.primary }}"></i><i style="background:{{ p.accent }}"></i>{{ name }}</button>{% endfor %}</div>
+<div class="g3">{% for k, l in [('primary','رنگ اصلی'),('secondary','رنگ دوم (تیره)'),('accent','رنگ تاکیدی'),('ink','رنگ متن'),('header','پس‌زمینه هدر'),('footer','پس‌زمینه فوتر')] %}
+<label class="f"><span>{{ l }}</span><input class="in" type="color" name="{{ k }}" value="{{ pal[k] }}"></label>{% endfor %}</div>
+<div class="row"><button class="btn">{{ ic('save') }} ذخیره پالت</button><span class="small muted">روی سایت، پنل کاربر و داشبورد مدیریت اعمال می‌شود.</span></div></form>
+<form class="card" method="post">{{ csrf_field() }}<input type="hidden" name="section" value="megamenu"><h3>{{ ic('layout-grid') }} مگامنوی هدر</h3>
+<div class="g3"><div class="feat"><span>فعال</span>{{ sw('enabled', mm.get('enabled', True)) }}</div><div class="feat"><span>نمایش تصویر دسته‌ها</span>{{ sw('images', mm.get('images', True)) }}</div>
+<label class="f"><span>عنوان دکمه</span><input class="in" name="title" value="{{ mm.title or 'دسته‌بندی محصولات' }}"></label></div>
+<p class="small muted">دسته‌های ستون راست مگامنو (خالی = همه دسته‌های اصلی). زیر‌دسته‌ها با تصویر و عنوان خودکار نمایش داده می‌شوند.</p>
+<div class="mgrid">{% for c in roots %}<label><input type="checkbox" name="columns" value="{{ c.id }}" {{ 'checked' if c.id in (mm.columns or []) }}>
+{% if c.image_id %}<img src="{{ media_url(c.image_id, 'thumbnail') }}" alt="">{% else %}<div style="aspect-ratio:1;display:grid;place-items:center">{{ ic('folder', '', 34) }}</div>{% endif %}<small>{{ c.name }}</small></label>{% endfor %}</div>
+<button class="btn" style="margin-top:12px">{{ ic('save') }} ذخیره مگامنو</button></form>
+{% endblock %}
+{% block scripts %}<script>document.querySelectorAll('[data-p]').forEach(b=>b.onclick=()=>{const p=JSON.parse(b.dataset.p);for(const k in p){const i=document.querySelector(`#palf [name=${k}]`);if(i)i.value=p[k]}})</script>{% endblock %}

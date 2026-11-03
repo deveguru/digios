@@ -1,0 +1,19 @@
+{% extends "admin/base.html" %}{% from "admin/_m.html" import csrf_field, st with context %}
+{% block title %}{{ u.display_name }}{% endblock %}{% block h1 %}{{ u.display_name or u.username }}{% endblock %}
+{% block body %}
+<div class="g2">
+<form class="card" method="post">{{ csrf_field() }}<input type="hidden" name="action" value="profile"><h3>مشخصات</h3>
+<div class="g2"><label class="f"><span>نام</span><input class="in" name="first_name" value="{{ u.first_name }}"></label><label class="f"><span>نام خانوادگی</span><input class="in" name="last_name" value="{{ u.last_name }}"></label>
+<label class="f"><span>نام نمایشی</span><input class="in" name="display_name" value="{{ u.display_name }}"></label><label class="f"><span>موبایل</span><input class="in" name="phone" value="{{ u.phone or '' }}"></label>
+<label class="f"><span>ایمیل</span><input class="in" name="email" value="{{ u.email or '' }}"></label><label class="f"><span>وضعیت</span><select class="in" name="status"><option value="active">فعال</option><option value="disabled" {{ 'selected' if u.status == 'disabled' }}>مسدود</option></select></label>
+<label class="f"><span>رمز عبور جدید</span><input class="in" name="password" type="password" autocomplete="new-password"></label></div>
+<p class="small muted">نام کاربری: <span class="mono">{{ u.username }}</span> — عضویت {{ jdate(u.registered) }} — نقش‌های وردپرس: {{ (u.wp_roles or [])|join('، ') }}</p><button class="btn">ذخیره</button></form>
+<div>
+{% if F.wallet %}<form class="card" method="post">{{ csrf_field() }}<input type="hidden" name="action" value="wallet"><h3>کیف پول — موجودی {{ money(u.wallet_balance) }}</h3>
+<div class="row"><input class="in" name="amount" placeholder="مبلغ (+ شارژ / − کسر)" style="width:200px"><input class="in grow" name="note" placeholder="توضیح"><button class="btn l">اعمال</button></div>
+<table class="t small" style="margin-top:8px">{% for t in tx %}<tr><td>{{ jdt(t.created_at) }}</td><td>{{ t.description }}</td><td class="{{ 'ok' if t.amount > 0 else 'bad' }}">{{ money(t.amount) }}</td><td>{{ money(t.balance_after) }}</td></tr>{% endfor %}</table></form>{% endif %}
+{% set b = u.billing or {} %}<div class="card"><h3>آدرس</h3><p class="small">{{ b.state or '' }} {{ b.city or '' }} {{ b.address_1 or '' }} {{ b.postcode or '' }}</p></div>
+</div></div>
+<div class="card"><h3>سفارش‌ها</h3><table class="t small">{% for o in orders %}<tr><td><a href="/admin/orders/{{ o.id }}">#{{ fa(o.id) }}</a></td><td>{{ jdate(o.created) }}</td><td>{{ st(o.status, statuses) }}</td><td>{{ money(o.total) }}</td></tr>{% endfor %}</table></div>
+{% if meta %}<details class="card"><summary>اطلاعات تکمیلی منتقل‌شده از وردپرس ({{ fa(meta|length) }})</summary><table class="t small">{% for m in meta %}<tr><td class="mono">{{ m.k }}</td><td style="word-break:break-all">{{ (m.v or '')|truncate(200) }}</td></tr>{% endfor %}</table></details>{% endif %}
+{% endblock %}

@@ -1,0 +1,17 @@
+{% extends "admin/base.html" %}{% from "admin/_m.html" import csrf_field with context %}
+{% block title %}تنظیمات چاپ و فاکتور{% endblock %}{% block h1 %}{{ ic('printer') }} چاپ سفارشات و فاکتور (Order Print Pro){% endblock %}
+{% block actions %}<a class="btn l" href="/admin/orders">{{ ic('arrow-right') }} سفارشات</a>{% endblock %}
+{% block body %}
+<form method="post" class="g2">{{ csrf_field() }}
+<div class="card"><h3>{{ ic('package') }} فرستنده روی برگه‌های چاپ سفارش</h3>
+<label class="f"><span>نام فرستنده</span><input class="in" name="sender_name" value="{{ sender.name }}"></label>
+<label class="f"><span>تلفن</span><input class="in mono" name="sender_phone" value="{{ sender.phone }}"></label>
+<label class="f"><span>آدرس</span><textarea class="in" rows="3" name="sender_address">{{ sender.address }}</textarea></label>
+<p class="small muted">قالب برگه‌ها دقیقاً همان افزونه وردپرسی است: A4 با حاشیه ۶ میلی‌متر، هر سفارش در یک کادر با نوع ارسال، بارکد شماره سفارش، گیرنده، محصولات و فرستنده.</p></div>
+<div class="card"><h3>{{ ic('file-text') }} فاکتور مشتری</h3>
+<label class="f"><span>آدرس لوگو</span><input class="in mono" name="invoice_logo" value="{{ cfg.invoice_logo }}"></label>
+<label class="f"><span>رنگ اصلی</span><input class="in" type="color" name="invoice_color" value="{{ cfg.invoice_color or '#0073aa' }}"></label>
+<label class="f"><span>نام فروشگاه</span><input class="in" name="store_name" value="{{ cfg.store_name }}"></label>
+{% if cfg.invoice_logo %}<img src="{{ cfg.invoice_logo }}" alt="" style="max-width:160px;margin-top:6px">{% endif %}</div>
+<div><button class="btn">{{ ic('save') }} ذخیره</button></div></form>
+{% endblock %}

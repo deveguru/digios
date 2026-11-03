@@ -1,0 +1,7 @@
+{% extends "admin/base.html" %}
+{% block title %}سایت‌های من{% endblock %}{% block h1 %}سایت‌هایی که اجازه‌ی مدیریت دارید{% endblock %}
+{% block body %}
+<div class="kpis">{% for it in items %}<div class="kpi site-card"><span>{{ ic('globe') }} سایت</span><b>{{ it.name }}</b>
+<div>{% for p in it.perms %}<span class="badge">{{ labels.get(p, p) }}</span> {% endfor %}</div>
+<a class="btn" href="/mother/my/{{ it.site_id }}/enter">{{ ic('log-in') }} ورود به مدیریت</a></div>{% endfor %}</div>
+{% endblock %}

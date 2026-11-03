@@ -1,0 +1,65 @@
+<!doctype html>
+<html lang="fa" dir="rtl" data-theme="{{ request.cookies.get('theme') or 'light' }}"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="csrf" content="{{ csrf }}"><meta name="robots" content="noindex">
+<script>try{var t=localStorage.getItem('theme');if(t)document.documentElement.dataset.theme=t}catch(e){}</script>
+<title>{% block title %}مدیریت{% endblock %} | {{ site_name }}</title>
+<link rel="stylesheet" href="{{ asset('/static/css/admin.css') }}">
+<style>:root{--brand:{{ pal.primary }};--brand-d:{{ pal.secondary }};--accent:{{ pal.accent }}}</style><script>window.OSC={{ dots_json('order')|tojson }};</script><script src="{{ asset('/static/js/tags.js') }}"></script>
+<script>(function(){var n=0;function s(m,src,l){if(n++>3||!navigator.sendBeacon)return;try{navigator.sendBeacon('/_perf/js',new Blob([JSON.stringify({m:String(m).slice(0,400),s:src||'',l:l||'',p:location.pathname})],{type:'application/json'}))}catch(e){}}
+addEventListener('error',function(e){if(e.message)s(e.message,e.filename,e.lineno)});addEventListener('unhandledrejection',function(e){s('Promise: '+((e.reason&&e.reason.message)||e.reason),'',0)})})();</script>
+</head>
+<body data-icons="{{ icons_url() }}"><div class="lay">
+<aside class="side" id="side">
+  <div class="brand"><a href="/admin/"><i>{{ ic('store') }}</i><span class="lbl">{{ site_name|truncate(24) }}</span></a>
+    <button class="pin" type="button" data-collapse title="جمع/باز کردن منو">{{ ic('panel-right-close', 'c-close') }}{{ ic('panel-right-open', 'c-open') }}</button></div>
+  {% if IS_MOTHER and (user.role == 'owner' or net_grants_any) %}<a href="{{ '/mother/' if user.role == 'owner' else '/mother/my' }}" class="mi mother {{ 'on' if request.path.startswith('/mother') }}" title="داشبورد مادر">{{ ic('network') }}<span class="lbl">داشبورد مادر</span></a>{% endif %}
+  <nav class="grp-list">{% for gr in menu_groups %}
+    {% if gr['items']|length == 1 %}{% set m = gr['items'][0] %}<a href="{{ url_for(m.endpoint) }}" class="mi {{ 'on' if active == m.key }}" title="{{ m.label }}">{{ ic(m.icon) }}<span class="lbl">{{ m.label }}</span></a>
+    {% else %}<div class="grp {{ 'open' if active in gr['keys'] }}">
+      <button type="button" class="mi gh {{ 'on-g' if active in gr['keys'] }}" title="{{ gr.title }}">{{ ic(gr.icon) }}<span class="lbl">{{ gr.title }}</span>{{ ic('chevron-down', 'caret') }}</button>
+      <div class="sub">{% for m in gr['items'] %}<a href="{{ url_for(m.endpoint) }}" class="{{ 'on' if active == m.key }}">{{ ic(m.icon) }}<span class="lbl">{{ m.label }}</span></a>{% endfor %}</div>
+    </div>{% endif %}
+  {% endfor %}</nav>
+  <div class="sep"><span class="lbl">حساب</span></div>
+  <a class="mi" href="/" target="_blank" title="مشاهده سایت">{{ ic('external-link') }}<span class="lbl">مشاهده سایت</span></a>
+  <a class="mi" href="/my-account/" title="حساب من">{{ ic('circle-user-round') }}<span class="lbl">{{ user.display_name or user.username }}</span></a>
+  <a class="mi" href="/logout" title="خروج">{{ ic('log-out') }}<span class="lbl">خروج</span></a>
+</aside><div class="side-bg" onclick="document.getElementById('side').classList.remove('open')"></div>
+<main class="main">
+  <div class="top"><div class="row"><button class="burger" onclick="document.getElementById('side').classList.toggle('open')">{{ ic('menu') }}</button>
+    <h1>{% set cur = (menu|selectattr('key', 'equalto', active)|list) %}<span class="hic">{{ ic(cur[0].icon if cur else ('network' if request.path.startswith('/mother') else 'layout-dashboard')) }}</span>{% block h1 %}{% endblock %}</h1></div>
+    <div class="row">{% block actions %}{% endblock %}<div class="prefs"><button type="button" data-theme-toggle title="تم روشن / تیره">{{ ic('moon', 'theme-moon') }}{{ ic('sun', 'theme-sun') }}</button>
+      <a href="/lang/{{ 'fa' if lang == 'en' else 'en' }}" title="Language">{{ 'FA' if lang == 'en' else 'EN' }}</a></div></div></div>
+  {% if is_staging %}<div class="alert info">{{ ic('flask-conical') }}<span>نسخه آزمایشی: اطلاعات هر دقیقه از سایت وردپرسی زنده همگام می‌شود. پیامک تغییر وضعیت سفارش و ارسال به ترب در این نسخه غیرفعال است.</span></div>{% endif %}
+  {% with msgs = get_flashed_messages(with_categories=true) %}{% for cat, m in msgs %}<div class="alert {{ 'error' if cat == 'error' else 'ok' }}">{{ ic('circle-alert' if cat == 'error' else 'circle-check') }}{{ m }}</div>{% endfor %}{% endwith %}
+  {% block body %}{% endblock %}
+</main></div>
+{% if can_quick and not request.path.startswith('/admin/quick') %}
+<button class="qfab" type="button" data-quick title="مدیریت سریع سفارشات و محصولات">{{ ic('zap') }}</button>
+<div class="qpanel" id="qpanel"><div class="qh"><b>{{ ic('zap') }} مدیریت سریع</b><span class="row"><a class="btn s l" href="/admin/quick">{{ ic('maximize-2') }}</a><button class="btn s l" type="button" data-quick>{{ ic('x') }}</button></span></div><iframe data-src="/admin/quick?embed=1" title="quick"></iframe></div>
+{% endif %}
+<script>
+(function(){const lay=document.querySelector('.lay');try{if(localStorage.getItem('side_c')==='1')lay.classList.add('collapsed')}catch(e){}
+const sd=document.getElementById('side');let ht;
+sd.addEventListener('mouseenter',()=>{clearTimeout(ht);ht=setTimeout(()=>sd.classList.add('hov'),220)});
+sd.addEventListener('mouseleave',()=>{clearTimeout(ht);sd.classList.remove('hov');lay.classList.remove('nohover')});
+document.querySelector('[data-collapse]')?.addEventListener('click',()=>{lay.classList.toggle('collapsed');lay.classList.add('nohover');sd.classList.remove('hov');try{localStorage.setItem('side_c',lay.classList.contains('collapsed')?'1':'0')}catch(e){}});
+document.querySelectorAll('.grp>.gh').forEach(b=>b.addEventListener('click',()=>b.parentElement.classList.toggle('open')));
+document.querySelectorAll('[data-quick]').forEach(b=>b.addEventListener('click',()=>{const p=document.getElementById('qpanel');p.classList.toggle('open');const f=p.querySelector('iframe');if(!f.src)f.src=f.dataset.src}));})();
+const CSRF=document.querySelector('meta[name=csrf]').content;
+const EN=document.documentElement.lang==='en';
+const fa=n=>EN?String(n):String(n).replace(/\d/g,d=>'۰۱۲۳۴۵۶۷۸۹'[d]);
+const ICON=n=>`<svg class="ic"><use href="${document.body.dataset.icons}#${n}"></use></svg>`;
+async function post(url,data){const fd=data instanceof FormData?data:new FormData();if(!(data instanceof FormData))for(const k in data)fd.append(k,data[k]);fd.append('_csrf',CSRF);
+ const r=await fetch(url,{method:'POST',body:fd,headers:{'X-CSRF':CSRF,'X-Requested-With':'fetch'}});try{return await r.json()}catch(e){return{ok:false}}}
+function watchJob(id,el){const tick=async()=>{const r=await fetch('/admin/jobs/'+id).then(r=>r.json());const p=r.total?Math.round(r.progress*100/r.total):0;
+ el.innerHTML=`<div class="row sp small"><span>${ICON('loader')} #${fa(r.id)} — ${r.kind} — ${r.status}</span><span>${fa(r.progress)} / ${fa(r.total||'?')}</span></div><div class="prog"><i style="width:${p}%"></i></div>`+(r.result?`<div class="small muted">${JSON.stringify(r.result).slice(0,300)}</div>`:'');
+ if(['queued','running'].includes(r.status))setTimeout(tick,4000)};tick()}
+document.querySelectorAll('[data-job]').forEach(e=>watchJob(e.dataset.job,e));
+document.querySelectorAll('[data-checkall]').forEach(c=>c.addEventListener('change',()=>document.querySelectorAll(c.dataset.checkall).forEach(x=>x.checked=c.checked)));
+document.addEventListener('click',e=>{const b=e.target.closest('[data-theme-toggle]');if(!b)return;const d=document.documentElement,n=d.dataset.theme==='dark'?'light':'dark';d.dataset.theme=n;
+ try{localStorage.setItem('theme',n)}catch(_){}document.cookie='theme='+n+';path=/;max-age=31536000'});
+</script>
+<script src="{{ asset('/static/js/jdp.js') }}"></script><script src="{{ asset('/static/js/lists.js') }}"></script>
+{% block scripts %}{% endblock %}
+</body></html>

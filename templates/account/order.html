@@ -1,0 +1,20 @@
+{% extends "base.html" %}
+{% block title %}سفارش {{ fa(o.id) }} | {{ site_name }}{% endblock %}
+{% block body %}
+<div class="wrap" style="max-width:900px;margin-top:20px">
+  <a href="/my-account/orders/" class="small muted">{{ ic('arrow-right') }} سفارش‌ها</a>
+  <div class="card" style="margin-top:10px;--tc:{{ info.cfg.primary_color or 'var(--brand)' }}">
+    <div class="row sp"><h2 style="margin:0">سفارش #{{ fa(o.id) }}</h2><span class="badge">{{ status }}</span></div>
+    <p class="muted small">{{ jdt(o.created) }} — {{ o.payment_title or '' }}</p>
+    {% if not info.cancelled %}<div class="tl">{% for k, label in info.steps %}<div class="st {{ 'done' if loop.index0 <= info.current }}"><i>{{ fa(loop.index) }}</i>{{ label }}</div>{% endfor %}</div>{% endif %}
+    {% if info.tr and info.tr.tracking_code %}<p>کد رهگیری {% if info.carrier %}({{ info.carrier.name }}){% endif %}: <span class="code">{{ info.tr.tracking_code }}</span>
+      {% if info.carrier %}<a class="btn sm" href="{{ info.carrier.url }}" target="_blank">پیگیری</a>{% endif %}</p>{% endif %}
+    <table class="t"><tbody>{% for i in items if i.type in ('line_item','fee','coupon') %}<tr><td>{{ i.name }}{% if i.type == 'line_item' %} × {{ fa(i.qty) }}{% endif %}</td><td>{{ ('− ' if i.type == 'coupon' else '') ~ money(i.total) }}</td></tr>{% endfor %}
+      <tr><td><b>جمع کل</b></td><td><b>{{ money(o.total) }}</b></td></tr></tbody></table>
+    {% set b = o.shipping or o.billing or {} %}<p class="small">ارسال به: {{ b.first_name }} {{ b.last_name }} — {{ b.city }} — {{ b.address_1 }} {% if b.type_label %}<span class="badge">{{ b.type_label }}</span>{% endif %}</p>
+    {% for n in notes %}<div class="alert info small">{{ n.content }}</div>{% endfor %}
+    {% if o.status == 'pending' %}<a class="btn" href="/pay/{{ o.id }}/?key={{ o.order_key }}">پرداخت سفارش</a>{% endif %}
+    <a class="btn light" href="/?download_invoice=true&order_id={{ o.id }}&order_key={{ o.order_key }}" target="_blank">دانلود فاکتور</a>
+  </div>
+</div>
+{% endblock %}

@@ -1,0 +1,42 @@
+{% extends "base.html" %}
+{% block title %}تکمیل سفارش | {{ site_name }}{% endblock %}
+{% block body %}
+<div class="wrap" style="margin-top:20px">
+  <h1 style="font-size:1.4em">تکمیل سفارش</h1>
+  <form method="post" class="cartg">
+    <input type="hidden" name="_csrf" value="{{ csrf }}">
+    <div class="card">
+      {% if error %}<div class="alert error">{{ error }}</div>{% endif %}
+      {% for e in t.errors %}<div class="alert error">{{ e }}</div>{% endfor %}
+      {% if not user %}<div class="alert info">قبلاً خرید کرده‌اید؟ <a href="/login?next=/checkout/" style="font-weight:700">وارد شوید</a> — یا فقط فرم را پر کنید؛ حساب شما با شماره موبایل ساخته می‌شود.</div>{% endif %}
+      <h3 style="margin-top:0">اطلاعات گیرنده</h3>
+      <div class="grid2">
+        <label class="field"><span>نام *</span><input class="input" name="first_name" value="{{ billing.first_name or '' }}" required></label>
+        <label class="field"><span>نام خانوادگی *</span><input class="input" name="last_name" value="{{ billing.last_name or '' }}" required></label>
+        <label class="field"><span>موبایل *</span><input class="input" name="phone" value="{{ billing.phone or '' }}" inputmode="tel" required dir="ltr"></label>
+        <label class="field"><span>ایمیل</span><input class="input" name="email" type="email" value="{{ billing.email or '' }}" dir="ltr"></label>
+        <label class="field"><span>استان *</span><select class="input" name="state" required><option value="">انتخاب کنید</option>
+          {% for k, v in states.items()|sort(attribute=1) %}<option value="{{ k }}" {{ 'selected' if billing.state == k }}>{{ v }}</option>{% endfor %}</select></label>
+        <label class="field"><span>شهر *</span><input class="input" name="city" value="{{ billing.city or '' }}" required></label>
+      </div>
+      <label class="field"><span>آدرس کامل *</span><textarea class="input" name="address_1" rows="2" required>{{ billing.address_1 or '' }}</textarea></label>
+      <div class="grid2"><label class="field"><span>کد پستی</span><input class="input" name="postcode" value="{{ billing.postcode or '' }}" inputmode="numeric" dir="ltr"></label></div>
+      <label class="field"><span>توضیحات سفارش</span><textarea class="input" name="order_comments" rows="2" placeholder="اگر نکته‌ای درباره سفارش دارید بنویسید"></textarea></label>
+    </div>
+    <aside class="card sum">
+      <h3 style="margin-top:0">سفارش شما</h3>
+      {% for l in t.lines %}<div class="small"><span>{{ l.name|truncate(40) }} × {{ fa(l.qty) }}</span><span>{{ money(l.line_total) if not l.gift else 'هدیه' }}</span></div>{% endfor %}
+      <div><span>جمع</span><b>{{ money(t.subtotal) }}</b></div>
+      {% if t.discount %}<div><span>تخفیف</span><b>− {{ money(t.discount) }}</b></div>{% endif %}
+      {% for f in t.fees %}<div><span>{{ f.name }}</span><b>{% if f.hidden %}—{% else %}{{ money(f.amount) if f.amount else 'رایگان' }}{% endif %}</b></div>{% endfor %}
+      <div class="tot"><span>مبلغ قابل پرداخت</span><span>{{ money(t.total) }}</span></div>
+      {% set si = ship_info() %}{% if si['items'] %}<div class="shipinfo"><h4>{{ ic('truck') }} روش ارسال</h4>
+        {% for it in si['items'] %}<div class="si">{% if it.title %}<b>{{ it.title }}</b>{% endif %}<p>{{ it.text }}</p></div>{% endfor %}</div>{% endif %}
+      <h4>روش پرداخت</h4>
+      {% for k, label, d in methods %}<label class="pm"><input type="radio" name="payment_method" value="{{ k }}" {{ 'checked' if loop.first }}><div><b>{{ label }}</b><div class="small muted">{{ d }}</div></div></label>
+      {% else %}<div class="alert error">هیچ روش پرداختی فعال نیست.</div>{% endfor %}
+      <button class="btn block" {{ 'disabled' if t.errors or not methods }}>ثبت سفارش و پرداخت</button>
+    </aside>
+  </form>
+</div>
+{% endblock %}

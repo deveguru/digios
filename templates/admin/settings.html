@@ -1,0 +1,17 @@
+{% extends "admin/base.html" %}{% from "admin/_m.html" import csrf_field with context %}
+{% block title %}تنظیمات{% endblock %}{% block h1 %}تنظیمات و وضعیت سیستم{% endblock %}
+{% block body %}
+<div class="g2">
+<div class="card"><h3>قابلیت‌های فعال این سایت</h3><p class="small muted">روشن/خاموش کردن قابلیت‌ها از داشبورد مادر انجام می‌شود.</p>
+{% for k, v in feats.items() %}<div class="feat small"><span>{{ v[0] }}</span><span class="{{ 'ok' if fstate[k] else 'muted' }}">{% if fstate[k] %}{{ ic('circle-check') }} فعال{% else %}{{ ic('circle') }} غیرفعال{% endif %}</span></div>{% endfor %}</div>
+<div>
+<div class="card"><h3>وضعیت‌های سفارش</h3><table class="t small">{% for s in sts %}<tr><td>{{ ostatus(s.slug) }}</td><td class="mono">{{ s.slug }}</td><td>{{ 'پرداخت‌شده' if s.is_paid else '' }}</td></tr>{% endfor %}</table>
+<form method="post" action="/admin/settings/statuses" class="g4" style="margin-top:10px">{{ csrf_field() }}<input class="in" name="slug" placeholder="نامک لاتین"><input class="in" name="label" placeholder="عنوان"><input class="in" type="color" name="color" value="#64748b"><button class="btn l">افزودن/ویرایش</button></form></div>
+<div class="card"><h3>زمان‌بندی‌ها و کارهای پس‌زمینه</h3><table class="t small">{% for s in sch %}<tr><td>{{ s.kind }}</td><td>هر {{ fa(s.every_minutes) }} دقیقه</td><td>{{ jdt(s.last_run) }}</td><td>{{ ic('check') if s.enabled }}</td></tr>{% endfor %}</table>
+<table class="t small" style="margin-top:8px">{% for j in jobs %}<tr><td>#{{ j.id }}</td><td>{{ j.kind }}</td><td>{{ tag(j.status) }}</td><td>{{ fa(j.progress) }}/{{ fa(j.total) }}</td><td>{{ jdt(j.updated_at) }}</td></tr>{% endfor %}</table></div>
+</div></div>
+{% if report %}<div class="card"><h3>گزارش انتقال از وردپرس — {{ jdt(report.at) }}</h3><table class="t small">{% for k, v in report.checks.items() %}<tr><td>{{ k }}</td><td>{{ v.wordpress }}</td><td>{{ v.platform }}</td><td class="{{ 'ok' if v.ok else 'bad' }}">{{ ic('check') if v.ok else ic('triangle-alert') }}</td></tr>{% endfor %}</table>
+<details><summary class="small">تعداد ردیف‌های منتقل‌شده به تفکیک جدول</summary><table class="t small">{% for k, v in report.rows.items() %}<tr><td>{{ k }}</td><td>{{ fa(v) }}</td></tr>{% endfor %}</table></details></div>{% endif %}
+<div class="card"><h3>گزارش فعالیت مدیران</h3><table class="t small">{% for a in aud %}<tr><td>{{ jdt(a.created_at) }}</td><td>{{ a.username }}</td><td>{{ a.action }}</td><td>{{ a.target }}</td><td class="mono">{{ a.ip }}</td></tr>{% endfor %}</table></div>
+<p class="small muted">نسخه پلتفرم {{ version }}</p>
+{% endblock %}

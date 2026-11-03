@@ -1,0 +1,94 @@
+{% extends "admin/base.html" %}{% from "admin/_m.html" import csrf_field with context %}
+{% block title %}صفحه اصلی{% endblock %}{% block h1 %}چیدمان صفحه اصلی و اسلایدرها{% endblock %}
+{% block actions %}<a class="btn l" href="/" target="_blank">{{ ic('external-link') }} پیش‌نمایش</a>{% endblock %}
+{% block body %}
+<form class="card" method="post">{{ csrf_field() }}<input type="hidden" name="action" value="live">
+<h3>{{ ic('sparkles') }} زنده‌سازی صفحه اصلی</h3>
+<div class="g2">
+  <label class="row" style="gap:8px"><label class="switch"><input type="checkbox" name="auto_scroll" value="1" {{ 'checked' if live.auto_scroll }}><i></i></label> پیمایش خودکار همه اسلایدرها (تخفیف‌ها، محصولات، دسته‌ها، استوری‌ها)</label>
+  <label class="f"><span>فاصله هر حرکت (ثانیه)</span><input class="in" type="number" min="2" max="20" name="scroll_seconds" value="{{ live.scroll_seconds }}"></label>
+  <label class="row" style="gap:8px"><label class="switch"><input type="checkbox" name="cat_auto_images" value="1" {{ 'checked' if live.cat_auto_images }}><i></i></label> تصویر دسته‌بندی‌ها از پربازدیدترین محصول موجودِ دارای تصویر همان دسته</label>
+  <label class="f"><span>منبع استوری‌ها</span><select class="in" name="stories_source">{% for k, l in [('categories','دسته‌بندی محصولات (خودکار)'),('custom','استوری‌های ساخته‌شده'),('both','هر دو')] %}<option value="{{ k }}" {{ 'selected' if live.stories_source == k }}>{{ l }}</option>{% endfor %}</select></label>
+  <label class="f"><span>تعداد استوری‌های دسته‌بندی</span><input class="in" type="number" min="4" max="40" name="stories_limit" value="{{ live.stories_limit }}"></label>
+</div>
+<h4 style="margin:14px 0 6px">{{ ic('panels-top-left') }} ارتفاع هدر هیرو</h4>
+<div class="g2">{% for k, l in [('hero_h_desktop', 'دسکتاپ'), ('hero_h_mobile', 'موبایل')] %}{% set v = live[k] %}
+  <div class="f"><span>{{ l }}</span><div class="row" style="gap:6px"><select class="in" name="{{ k }}_mode" style="width:auto" onchange="this.nextElementSibling.disabled=this.value==='auto'"><option value="auto" {{ 'selected' if v == 'auto' }}>خودکار (به اندازه محتوا)</option><option value="custom" {{ 'selected' if v != 'auto' }}>دلخواه</option></select>
+  <input class="in" name="{{ k }}" value="{{ '' if v == 'auto' else v }}" placeholder="مثلاً 520 یا 70vh" {{ 'disabled' if v == 'auto' }} style="width:150px" dir="ltr"></div></div>{% endfor %}</div>
+<p class="small muted">عدد = پیکسل؛ می‌توانید vh هم بنویسید (مثلاً 70vh یعنی ۷۰٪ ارتفاع صفحه).</p>
+<button class="btn" style="margin-top:8px">{{ ic('save') }} ذخیره</button></form>
+<div class="g2" style="grid-template-columns:1.1fr 1fr">
+<div class="card"><h3>{{ ic('layers') }} بخش‌های صفحه (برای جابجایی بکشید و رها کنید)</h3>
+  <div class="sec-list" id="list"></div>
+  <div class="row" style="margin-top:10px"><select class="in" id="newType" style="width:auto">{% for k, l in types.items() %}<option value="{{ k }}">{{ l }}</option>{% endfor %}</select>
+  <button class="btn l" type="button" id="add">{{ ic('plus') }} افزودن بخش</button></div>
+  <form method="post" style="margin-top:14px">{{ csrf_field() }}<input type="hidden" name="sections" id="out"><button class="btn">{{ ic('save') }} ذخیره چیدمان</button></form>
+</div>
+<div class="card" id="ed"><h3>{{ ic('pencil') }} ویرایش بخش</h3><p class="muted">یک بخش را انتخاب کنید.</p></div>
+</div>
+{% endblock %}
+{% block scripts %}<script>
+const TYPES={{ types|tojson }}, SOURCES={{ sources|tojson }}, CATS={{ cats|tojson }}, CARDS={{ cards|tojson }};
+let S={{ sections|tojson }}, cur=-1;
+const list=document.getElementById('list'), ed=document.getElementById('ed');
+const esc=s=>String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const ICONS={hero:'panels-top-left',stories:'circle-dot',categories:'layout-grid',product_slider:'gallery-horizontal',deals:'zap',banner_slider:'image',banners_grid:'layout-panel-left',card_master:'layers',html:'code'};
+function title(s){return s.title||(s.type==='card_master'?(CARDS.find(c=>c.id==s.card_id)||{}).title:'')||TYPES[s.type]}
+function render(){list.innerHTML=S.map((s,i)=>`<div class="item" draggable="true" data-i="${i}" style="${i===cur?'outline:2px solid var(--brand)':''}">
+ <span class="handle">${ICON('grip-vertical')}</span>${ICON(ICONS[s.type]||'square')}<b class="grow" style="cursor:pointer" data-edit="${i}">${esc(title(s))}</b>
+ <span class="small muted">${esc(TYPES[s.type])}</span>
+ <label class="switch"><input type="checkbox" data-en="${i}" ${s.enabled!==false?'checked':''}><i></i></label>
+ <button class="btn s red" type="button" data-del="${i}">${ICON('trash-2')}</button></div>`).join('');
+ document.getElementById('out').value=JSON.stringify(S)}
+list.addEventListener('click',e=>{const d=e.target.closest('[data-del]'),ed_=e.target.closest('[data-edit]');
+ if(d&&confirm('حذف این بخش؟')){S.splice(+d.dataset.del,1);cur=-1;render();edit(-1)} if(ed_)edit(+ed_.dataset.edit)});
+list.addEventListener('change',e=>{const c=e.target.closest('[data-en]');if(c){S[+c.dataset.en].enabled=c.checked;render()}});
+let from=null;
+list.addEventListener('dragstart',e=>{const it=e.target.closest('.item');from=+it.dataset.i;it.classList.add('drag')});
+list.addEventListener('dragover',e=>{e.preventDefault()});
+list.addEventListener('drop',e=>{e.preventDefault();const it=e.target.closest('.item');if(!it||from===null)return;const to=+it.dataset.i;const [m]=S.splice(from,1);S.splice(to,0,m);
+ if(cur===from)cur=to;from=null;render()});
+list.addEventListener('dragend',()=>{from=null;render()});
+document.getElementById('add').onclick=()=>{const t=document.getElementById('newType').value;const s={id:Math.random().toString(36).slice(2,8),type:t,enabled:true,title:t==='hero'||t==='stories'?'':TYPES[t]};
+ if(t==='product_slider')Object.assign(s,{source:'newest',limit:12,style:'slider'});if(t==='deals')Object.assign(s,{title:'تخفیف‌های ویژه',source:'sale',limit:12,countdown:'daily',banner_pos:'start',hide_when_over:true});if(t==='categories')Object.assign(s,{style:'circles',source:'top',limit:18});
+ if(t.startsWith('banner'))Object.assign(s,{items:[],cols:2,ratio:'3/1',interval:5});S.push(s);cur=S.length-1;render();edit(cur)};
+function f(label,html){return `<label class="f"><span>${label}</span>${html}</label>`}
+function inp(k,v,type='text'){return `<input class="in" data-k="${k}" type="${type}" value="${esc(v)}">`}
+function sel(k,v,opts){return `<select class="in" data-k="${k}">${Object.entries(opts).map(([a,b])=>`<option value="${a}" ${String(v)===String(a)?'selected':''}>${esc(b)}</option>`).join('')}</select>`}
+function promo(s){const deals=s.type==='deals';
+ return `<h4 style="margin:16px 0 6px">${ICON('image')} بنر کنار اسلایدر</h4>
+ <div class="row" style="align-items:flex-end">${(s.banner_prev||(!/^\d+$/.test(s.banner_image||'')&&s.banner_image))?`<img src="${esc(s.banner_prev||s.banner_image)}" onerror="this.remove()" style="width:72px;height:72px;object-fit:cover;border-radius:12px">`:''}
+ <div class="grow">${f('تصویر بنر (آدرس یا شناسه رسانه)',inp('banner_image',s.banner_image))}</div><label class="btn l s" style="margin-bottom:12px">${ICON('upload')} آپلود<input type="file" accept="image/*" id="banup" hidden></label></div>
+ <div class="g2">${f('لینک بنر',inp('banner_link',s.banner_link))}${f('متن روی بنر (اختیاری)',inp('banner_title',s.banner_title))}${f('جای بنر',sel('banner_pos',s.banner_pos||'start',{start:'سمت راست (ابتدای ردیف)',end:'سمت چپ (انتهای ردیف)'}))}
+ ${deals?f('زیرعنوان',inp('subtitle',s.subtitle)):f('قاب رنگی',sel('band',s.band?'1':'',{'':'خیر','1':'بله'}))}</div>
+ <div class="g2">${f('رنگ اول قاب',`<input class="in" type="color" data-k="color1" value="${esc(s.color1||'#ef4056')}">`)}${f('رنگ دوم قاب',`<input class="in" type="color" data-k="color2" value="${esc(s.color2||'#f97316')}">`)}</div>
+ <h4 style="margin:16px 0 6px">${ICON('timer')} تایمر معکوس</h4>
+ <div class="g2">${f('نوع تایمر',sel('countdown',s.countdown||'',{'':'بدون تایمر',daily:'تا پایان امروز (هر روز از نو)',date:'تا تاریخ و ساعت مشخص',sale:'تا پایان زمان تخفیف محصولات'}))}
+ ${f('متن کنار تایمر',inp('countdown_label',s.countdown_label||'زمان باقی‌مانده'))}
+ ${f('تاریخ پایان (شمسی)',`<input class="in" data-k="countdown_end" data-jdate value="${esc(s.countdown_end)}">`)}${f('ساعت پایان',`<input class="in" type="time" data-k="countdown_time" value="${esc(s.countdown_time||'23:59')}">`)}
+ ${f('بعد از پایان زمان',sel('hide_when_over',s.hide_when_over===false?'0':'1',{'1':'بخش مخفی شود','0':'بخش بماند (تایمر صفر)'}))}</div>`}
+function edit(i){cur=i;render();if(i<0){ed.innerHTML='<h3>ویرایش بخش</h3><p class="muted">یک بخش را انتخاب کنید.</p>';return}const s=S[i];let h=`<h3>${ICON(ICONS[s.type])} ${esc(TYPES[s.type])}</h3>`;
+ if(!['hero','stories'].includes(s.type))h+=f('عنوان',inp('title',s.title));
+ const cats=Object.fromEntries([['','—']].concat(CATS.map(c=>[c.id,c.name])));
+ if(s.type==='product_slider'||s.type==='deals'){h+=`<div class="g2">${f('منبع محصولات',sel('source',s.source,SOURCES))}${f('تعداد',inp('limit',s.limit||12,'number'))}${f('نمایش',sel('style',s.style||'slider',{slider:'اسلایدر کشیدنی',grid:'شبکه‌ای'}))}${f('دسته‌بندی (برای منبع دسته)',sel('category_id',s.category_id||'',cats))}</div>`+
+  f('شناسه محصولات (برای منبع انتخابی)',inp('ids',s.ids))+f('لینک «مشاهده همه» (اختیاری)',inp('link',s.link))+promo(s)}
+ if(s.type==='categories'){h+=`<div class="g2">${f('ظاهر',sel('style',s.style||'circles',{circles:'دایره‌ای کشیدنی',cards:'کارت کشیدنی',tiles:'کاشی بزرگ تصویری'}))}${f('منبع',sel('source',s.source||'top',{top:'دسته‌های اصلی',selected:'دسته‌های انتخابی'}))}${f('تعداد',inp('limit',s.limit||18,'number'))}</div>`+
+  f('دسته‌های انتخابی (به ترتیب)',`<select class="in" multiple size="8" data-k="ids" data-multi>${CATS.map(c=>`<option value="${c.id}" ${String(s.ids||'').split(',').includes(String(c.id))?'selected':''}>${esc(c.name)}</option>`).join('')}</select>`)}
+ if(s.type==='card_master')h+=f('کارت',sel('card_id',s.card_id,Object.fromEntries(CARDS.map(c=>[c.id,c.title]))));
+ if(s.type==='html')h+=f('HTML',`<textarea class="in" rows="8" data-k="html">${esc(s.html)}</textarea>`);
+ if(s.type==='banner_slider'||s.type==='banners_grid'){h+=`<div class="g2">${s.type==='banner_slider'?f('نسبت ابعاد',sel('ratio',s.ratio||'3/1',{'3/1':'۳ به ۱','21/9':'۲۱ به ۹','16/9':'۱۶ به ۹','2/1':'۲ به ۱'}))+f('مکث خودکار (ثانیه، ۰=خاموش)',inp('interval',s.interval??5,'number')):f('تعداد ستون',sel('cols',s.cols||2,{1:1,2:2,3:3,4:4}))}</div>
+  <div id="bitems">${(s.items||[]).map((b,j)=>`<div class="row" style="margin-bottom:6px"><input class="in grow" data-b="${j}" data-bk="image" placeholder="آدرس تصویر یا شناسه رسانه" value="${esc(b.image)}"><input class="in grow" data-b="${j}" data-bk="link" placeholder="لینک" value="${esc(b.link)}"><input class="in" style="width:120px" data-b="${j}" data-bk="title" placeholder="متن" value="${esc(b.title)}"><button class="btn s red" type="button" data-bdel="${j}">${ICON('x')}</button></div>`).join('')}</div>
+  <div class="row"><button class="btn l s" type="button" id="badd">${ICON('plus')} بنر</button><label class="btn l s">${ICON('upload')} آپلود تصویر<input type="file" accept="image/*" id="bup" hidden></label></div>`}
+ if(s.type==='hero')h+='<p class="small muted">محتوا و اسلایدهای هدر از «ظاهر سایت ← هدر» تنظیم می‌شود.</p>';
+ if(s.type==='stories')h+='<p class="small muted">استوری‌ها از منوی «استوری‌ها» مدیریت می‌شوند.</p>';
+ ed.innerHTML=h;
+ const setk=x=>{let v=x.dataset.multi!==undefined?[...x.selectedOptions].map(o=>o.value).join(','):x.value;if(x.dataset.k==='hide_when_over')v=v==='1';if(x.dataset.k==='band')v=v==='1';s[x.dataset.k]=v;render()};
+ ed.querySelectorAll('[data-k]').forEach(x=>{x.addEventListener('input',()=>setk(x));x.addEventListener('change',()=>setk(x))});
+ const bnu=document.getElementById('banup');if(bnu)bnu.onchange=async()=>{const fd=new FormData();fd.append('file',bnu.files[0]);const r=await post('/admin/media/upload-json',fd);if(r.ok){s.banner_image=String(r.id);s.banner_prev=r.url;edit(i)}else alert(r.message||'آپلود نشد')};
+ ed.querySelectorAll('[data-b]').forEach(x=>x.addEventListener('input',()=>{s.items[+x.dataset.b][x.dataset.bk]=x.value;render()}));
+ ed.querySelectorAll('[data-bdel]').forEach(x=>x.onclick=()=>{s.items.splice(+x.dataset.bdel,1);edit(i)});
+ const ba=document.getElementById('badd');if(ba)ba.onclick=()=>{(s.items=s.items||[]).push({image:'',link:'',title:''});edit(i)};
+ const bu=document.getElementById('bup');if(bu)bu.onchange=async()=>{const fd=new FormData();fd.append('file',bu.files[0]);const r=await post('/admin/media/upload-json',fd);
+  if(r.ok){(s.items=s.items||[]).push({image:String(r.id),link:'',title:''});edit(i)}};}
+render();
+</script>{% endblock %}

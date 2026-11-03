@@ -1,0 +1,22 @@
+{% extends "admin/base.html" %}
+{% block title %}بارکد و تحویل{% endblock %}{% block h1 %}بارکد و تحویل سفارشات (Guru Delivery){% endblock %}
+{% block actions %}<a class="btn l" href="/admin/delivery/export?tab={{ tab }}">{{ ic('download') }} خروجی CSV</a>{% endblock %}
+{% block body %}
+<div class="card"><h3>اسکن بارکد</h3><form id="scan" class="row"><input class="in grow mono" id="bc" placeholder="بارکد را اسکن یا وارد کنید" autofocus style="font-size:1.3em;padding:12px">
+<button class="btn">ثبت تحویل</button></form><div id="scanres" style="margin-top:10px"></div></div>
+<div class="tabs"><a href="?tab=pending" class="{{ 'on' if tab != 'delivered' }}">در انتظار تحویل ({{ fa(counts.get('pending', 0)) }})</a><a href="?tab=delivered" class="{{ 'on' if tab == 'delivered' }}">تحویل شده ({{ fa(counts.get('delivered', 0)) }})</a></div>
+<form class="card row"><input type="hidden" name="tab" value="{{ tab }}"><input class="in grow" name="q" value="{{ q }}" placeholder="بارکد، شماره سفارش، نام"><button class="btn l">جستجو</button></form>
+<div class="card tw"><table class="t"><thead><tr><th>سفارش</th><th>بارکد</th><th>مشتری</th><th>شهر</th><th>مبلغ</th><th>{{ 'زمان تحویل' if tab == 'delivered' else 'ایجاد' }}</th><th></th></tr></thead><tbody>
+{% for r in rows %}<tr><td><a href="/admin/orders/{{ r.order_id }}">#{{ fa(r.order_id) }}</a></td><td class="mono">{{ r.barcode }}</td><td>{{ r.customer_name or '' }}</td><td>{{ r.city or '' }}</td><td>{{ money(r.total or 0) }}</td>
+<td class="small">{{ jdt(r.scanned_at if tab == 'delivered' else r.created_at) }} {% if r.delivery_method %}({{ r.delivery_method }}){% endif %}</td>
+<td>{% if tab == 'delivered' %}<button class="btn s l" onclick="act({{ r.order_id }},'return',this)">بازگشت</button>{% else %}<button class="btn s" onclick="act({{ r.order_id }},'deliver',this)">تحویل دستی</button>{% endif %}
+<a class="btn s l" target="_blank" href="/admin/orders/print?ids={{ r.order_id }}&mode=label">{{ ic('tag') }}</a></td></tr>{% endfor %}</tbody></table>
+<div class="pager"><a href="?tab={{ tab }}&page={{ page + 1 }}">صفحه بعد {{ ic('chevron-left') }}</a></div></div>
+{% endblock %}
+{% block scripts %}<script>
+const res=document.getElementById('scanres'),bc=document.getElementById('bc');
+document.getElementById('scan').onsubmit=async e=>{e.preventDefault();const r=await post('/admin/delivery/scan',{barcode:bc.value});
+res.innerHTML=`<div class="alert ${r.ok?'ok':'error'}">${r.message}${r.customer?' — '+r.customer:''}</div>`;bc.value='';bc.focus();
+try{new Audio(r.ok?'data:audio/wav;base64,UklGRiQAAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQAAAAA=':'').play()}catch(_){}}
+async function act(id,a,b){b.disabled=true;const r=await post('/admin/delivery/manual',{order_id:id,act:a});b.closest('tr').style.opacity=.4}
+</script>{% endblock %}

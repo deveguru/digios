@@ -1,0 +1,19 @@
+{% extends "admin/base.html" %}{% from "admin/_m.html" import csrf_field with context %}
+{% block title %}خروجی/ورودی محصولات{% endblock %}{% block h1 %}خروجی و ورودی محصولات (WP369 Product Exporter & Importer){% endblock %}
+{% block body %}
+<div class="g2">
+<form class="card" method="post">{{ csrf_field() }}<input type="hidden" name="action" value="export"><h3>خروجی JSON</h3>
+<p class="small muted">شامل همه فیلدها، دسته‌ها، ویژگی‌ها، متغیرها و لینک تصاویر. خالی = همه محصولات.</p>
+<div style="max-height:220px;overflow:auto;margin-bottom:10px">{% for c in cats if c.parent == 0 %}<label class="small" style="display:block"><input type="checkbox" name="cats" value="{{ c.id }}"> {{ c.name }} ({{ fa(c.count) }})</label>{% endfor %}</div>
+<button class="btn">ساخت فایل خروجی</button></form>
+<form class="card" method="post" enctype="multipart/form-data">{{ csrf_field() }}<input type="hidden" name="action" value="import"><h3>ورودی JSON</h3>
+<label class="f"><span>فایل خروجی (از این پلتفرم یا سایت دیگر)</span><input class="in" type="file" name="file" accept=".json" required></label>
+<label class="small" style="display:block"><input type="checkbox" name="images" value="1" checked> دانلود و درج تصاویر</label>
+<label class="small" style="display:block"><input type="checkbox" name="update_existing" value="1" checked> بروزرسانی محصولات موجود (تطبیق با شناسه شبکه و SKU)</label>
+<label class="f"><span>وضعیت محصولات درون‌ریزی‌شده</span><select class="in" name="status"><option value="">مانند فایل</option><option value="draft">پیش‌نویس</option><option value="publish">منتشر</option></select></label>
+<button class="btn">شروع درون‌ریزی</button></form>
+</div>
+<div class="card"><h3>خروجی‌ها</h3><table class="t small">{% for j in exports %}<tr><td>#{{ j.id }}</td><td>{{ tag(j.status) }}</td><td>{{ fa(j.progress) }}</td><td>{{ jdt(j.created_at) }}</td>
+<td>{% if j.result and j.result.file %}<a class="btn s" href="/admin/product-io/download/{{ j.result.file }}">{{ ic('download') }} دانلود ({{ fa(j.result.count) }} محصول)</a>{% else %}<span data-job="{{ j.id }}"></span>{% endif %}</td></tr>{% endfor %}</table></div>
+<div class="card"><h3>درون‌ریزی‌ها</h3><table class="t small">{% for j in imports %}<tr><td>#{{ j.id }}</td><td>{{ tag(j.status) }}</td><td>{{ fa(j.progress) }} / {{ fa(j.total) }}</td><td>{{ j.result or '' }}</td><td>{{ jdt(j.created_at) }}</td></tr>{% endfor %}</table></div>
+{% endblock %}

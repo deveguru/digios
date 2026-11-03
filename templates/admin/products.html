@@ -1,0 +1,36 @@
+{% extends "admin/base.html" %}{% from "admin/_m.html" import pager, csrf_field with context %}
+{% block title %}محصولات{% endblock %}{% block h1 %}محصولات ({{ fa(total) }}){% endblock %}
+{% block actions %}<a class="btn" href="/admin/products/new">{{ ic('plus') }} محصول جدید</a>{% endblock %}
+{% block body %}
+<form class="card infobar" method="post" action="/admin/products/visibility">{{ csrf_field() }}
+  <b>{{ ic('eye-off') }} نمایش در سایت</b>
+  <label class="row" style="gap:6px"><label class="switch"><input type="checkbox" name="hide_outofstock" value="1" {{ 'checked' if vis.hide_outofstock }} onchange="this.form.submit()"><i></i></label>مخفی‌کردن ناموجودها <span class="muted">({{ fa(vis_counts.outofstock) }})</span></label>
+  <label class="row" style="gap:6px"><label class="switch"><input type="checkbox" name="hide_zero_price" value="1" {{ 'checked' if vis.hide_zero_price }} onchange="this.form.submit()"><i></i></label>مخفی‌کردن بدون قیمت‌ها <span class="muted">({{ fa(vis_counts.zero_price) }})</span></label>
+  <span class="hint" tabindex="0">{{ ic('info') }}<span>مخفی یعنی: در فروشگاه، دسته‌ها، جستجو، صفحه اصلی، نقشه سایت و فید ترب دیده نمی‌شوند، صفحه‌شان برای مشتری باز نمی‌شود و کسی نمی‌تواند سفارششان بدهد. مدیر و کارمندان صفحه آن‌ها را برای ویرایش می‌بینند.</span></span>
+</form>
+<form class="card row" method="get">
+  <input class="in grow" name="q" value="{{ args.q or '' }}" placeholder="نام، کد SKU یا شناسه">
+  <select class="in" name="cat" style="width:auto;max-width:220px"><option value="">همه دسته‌ها</option>{% for c in cats %}<option value="{{ c.id }}" {{ 'selected' if (args.cat or 0)|int == c.id }}>{{ c.name }}</option>{% endfor %}</select>
+  <select class="in" name="status" style="width:auto"><option value="">همه وضعیت‌ها</option>{% for k, l in [('publish','منتشر شده'),('draft','پیش‌نویس'),('pending','در انتظار'),('private','خصوصی'),('trash','زباله‌دان')] %}<option value="{{ k }}" {{ 'selected' if args.status == k }}>{{ l }}</option>{% endfor %}</select>
+  <select class="in" name="stock" style="width:auto"><option value="">موجودی</option><option value="instock" {{ 'selected' if args.stock == 'instock' }}>موجود</option><option value="outofstock" {{ 'selected' if args.stock == 'outofstock' }}>ناموجود</option></select>
+  <select class="in" name="sort" style="width:auto"><option value="">جدیدترین</option><option value="sales" {{ 'selected' if args.sort == 'sales' }}>پرفروش‌ترین</option><option value="views" {{ 'selected' if args.sort == 'views' }}>پربازدیدترین</option><option value="modified" {{ 'selected' if args.sort == 'modified' }}>آخرین ویرایش</option></select>
+  <button class="btn">فیلتر</button></form>
+<div class="card tw"><table class="t rsp"><thead><tr><th data-sort="id"></th><th data-sort="name">نام</th><th data-sort="sku">SKU</th><th data-sort="regular">قیمت عادی</th><th data-sort="sale">قیمت فروش</th><th data-sort="stock">موجودی</th><th data-sort="sales">فروش</th><th data-sort="views">بازدید</th><th data-sort="status">وضعیت</th></tr></thead><tbody>
+{% for p in rows %}<tr data-id="{{ p.id }}">
+  <td><img class="thumb" src="{{ p._img }}" alt=""></td>
+  <td><a href="/admin/products/{{ p.id }}"><b>{{ p.name|truncate(60) }}</b></a><div class="small muted">#{{ p.id }} {% if p.type == 'variable' %}{{ tag('variable') }}{% endif %}</div></td>
+  <td class="small mono">{{ p.sku or '' }}</td>
+  {% if p.type != 'variable' %}
+  <td><input class="in q" data-f="regular_price" value="{{ p.regular_price or '' }}" style="width:110px"></td>
+  <td><input class="in q" data-f="sale_price" value="{{ p.sale_price or '' }}" style="width:110px"></td>
+  {% else %}<td colspan="2" class="small">{{ money(p._price) }}{% if p._price_max > p._price %} – {{ money(p._price_max) }}{% endif %}</td>{% endif %}
+  <td><select class="in q" data-f="stock_status" style="width:auto" data-dots='{"instock":"#16a34a","outofstock":"#dc2626","onbackorder":"#f59e0b"}'><option value="instock" {{ 'selected' if p.stock_status == 'instock' }}>موجود</option><option value="outofstock" {{ 'selected' if p.stock_status == 'outofstock' }}>ناموجود</option><option value="onbackorder" {{ 'selected' if p.stock_status == 'onbackorder' }}>پیش‌سفارش</option></select>
+    {% if p.manage_stock %}<div class="small muted">{{ fa(p.stock_qty or 0) }} عدد</div>{% endif %}</td>
+  <td>{{ fa(p.total_sales or 0) }}</td><td>{{ fa(p.views or 0) }}</td>
+  <td><select class="in q" data-f="status" style="width:auto" data-dots='{"publish":"#16a34a","draft":"#94a3b8","private":"#7c3aed","trash":"#dc2626","pending":"#f59e0b"}'>{% for k, l in [('publish','منتشر'),('draft','پیش‌نویس'),('private','خصوصی'),('trash','حذف')] %}<option value="{{ k }}" {{ 'selected' if p.status == k }}>{{ l }}</option>{% endfor %}</select></td>
+</tr>{% endfor %}</tbody></table></div>
+{{ pager(page, pages) }}
+{% endblock %}
+{% block scripts %}<script>
+document.querySelectorAll('.q').forEach(i=>i.addEventListener('change',async()=>{const id=i.closest('tr').dataset.id;const r=await post('/admin/products/quick',{id,[i.dataset.f]:i.value});
+i.style.borderColor=r.ok?'#16a34a':'#dc2626';}));</script>{% endblock %}

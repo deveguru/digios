@@ -1,0 +1,49 @@
+{% extends "admin/base.html" %}{% from "admin/_m.html" import csrf_field with context %}
+{% block title %}{{ s.domain }}{% endblock %}{% block h1 %}{{ s.name }} <span class="mono small muted">{{ s.domain }}</span>{% endblock %}
+{% block actions %}<a class="btn l" href="/mother/">{{ ic('arrow-right') }} بازگشت</a>{% if s.status == 'active' %}<a class="btn" href="/mother/sites/{{ s.id }}/sso" target="_blank">ورود به مدیریت سایت</a><a class="btn l" href="https://{{ s.domain }}/" target="_blank">{{ ic('external-link') }} سایت</a>{% endif %}{% endblock %}
+{% block body %}{% set stt = s.stats or {} %}
+<div class="kpis"><div class="kpi"><span>وضعیت</span><b>{{ tag(s.status, {'new':'جدید','installing':'در حال نصب','active':'فعال','error':'خطا','disabled':'غیرفعال'}.get(s.status, s.status), color={'installing':'#f59e0b','error':'#dc2626'}.get(s.status)) }}</b></div><div class="kpi"><span>محصولات</span><b>{{ fa(stt.products or 0) }}</b></div>
+<div class="kpi"><span>سفارش‌ها</span><b>{{ fa(stt.orders or 0) }}</b></div><div class="kpi"><span>کاربران</span><b>{{ fa(stt.users or 0) }}</b></div><div class="kpi"><span>فروش امروز</span><b>{{ money(stt.sales_today or 0) }}</b></div><div class="kpi"><span>نسخه</span><b>{{ s.version or '—' }}</b></div></div>
+{% if s.last_error %}<div class="alert error small">آخرین خطا: {{ s.last_error }}</div>{% endif %}
+{% for t in tasks[:3] if t.status in ('queued', 'running') or loop.first %}<div class="card"><div class="row sp"><b>کار #{{ t.id }} — {{ t.kind }}</b><span id="ts{{ t.id }}">{{ tag(t.status) }}</span></div><pre class="log" id="tl{{ t.id }}" data-task="{{ t.id }}">{{ t.log }}</pre></div>{% endfor %}
+<div class="g2">
+<form class="card" method="post">{{ csrf_field() }}<input type="hidden" name="action" value="features"><h3>قابلیت‌های این سایت (اعمال فوری)</h3>
+{% for k, v in feats.items() %}<div class="feat small"><span>{{ v[0] }}</span><label class="switch"><input type="checkbox" name="f_{{ k }}" value="1" {{ 'checked' if fstate.get(k) }}><i></i></label></div>{% endfor %}
+<button class="btn" style="margin-top:10px">ذخیره و اعمال</button></form>
+<div>
+<form class="card" method="post">{{ csrf_field() }}<input type="hidden" name="action" value="copy"><h3>انتقال / کپی اطلاعات به این سایت</h3>
+<label class="f"><span>مبدا</span><select class="in" name="source_site_id"><option value="">سایت اصلی ({{ site_name }})</option>{% for o in others if o.status == 'active' %}<option value="{{ o.id }}">{{ o.domain }}</option>{% endfor %}</select></label>
+<div class="row small" style="margin-bottom:8px">{% for k, l in [('settings','تنظیمات و ظاهر'),('terms','دسته‌بندی‌ها'),('products','محصولات'),('users','کاربران'),('orders','سفارشات')] %}<label><input type="checkbox" name="c_{{ k }}" value="1" {{ 'checked' if k in ('terms','products') }}> {{ l }}</label>{% endfor %}</div>
+<details><summary class="small">فیلتر و تنظیمات محصولات</summary>
+<label class="f"><span>فقط این دسته‌ها</span><div style="max-height:160px;overflow:auto;border:1px solid var(--line);border-radius:9px;padding:6px">{% for c in cats if c.parent == 0 %}<label class="small" style="display:inline-block;margin-left:8px"><input type="checkbox" name="cats" value="{{ c.id }}"> {{ c.name }}</label>{% endfor %}</div></label>
+<label class="f"><span>فقط این محصولات (شناسه‌ها)</span><input class="in" name="product_ids"></label>
+<div class="g3"><label class="f"><span>تغییر قیمت (٪)</span><input class="in" name="price_pct" value="0"></label><label class="f"><span>رند (رقم)</span><input class="in" name="round" value="0"></label>
+<label class="f"><span>وضعیت</span><select class="in" name="status"><option value="">مانند مبدا</option><option value="draft">پیش‌نویس</option><option value="publish">منتشر</option></select></label></div>
+<label class="small" style="display:block"><input type="checkbox" name="images" value="1" checked> انتقال تصاویر</label><label class="small" style="display:block"><input type="checkbox" name="update_existing" value="1" checked> بروزرسانی محصولات موجود</label>
+<label class="small" style="display:block"><input type="checkbox" name="keep_prices" value="1"> حفظ قیمت‌های فعلی سایت مقصد</label>
+<label class="f"><span>سفارش‌ها از تاریخ</span><input class="in" data-jdate name="orders_since"></label></details>
+<button class="btn" style="margin-top:10px">شروع انتقال</button></form>
+<form class="card" method="post">{{ csrf_field() }}<h3>مدیریت اتصال</h3><div class="row"><button class="btn l" name="action" value="reinstall" onclick="return confirm('کد پلتفرم روی این هاست دوباره نصب/بروزرسانی شود؟')">نصب مجدد / بروزرسانی کد</button>
+<select class="in" name="status" style="width:auto"><option value="active">فعال</option><option value="disabled" {{ 'selected' if s.status == 'disabled' }}>غیرفعال</option></select><button class="btn l" name="action" value="status">تغییر وضعیت</button></div>
+<div class="row" style="margin-top:10px"><input class="in grow mono" name="token" placeholder="توکن جدید cPanel" autocomplete="off"><button class="btn l" name="action" value="token">بروزرسانی توکن</button></div>
+<p class="small muted">cPanel: <span class="mono">{{ s.cpanel_user }}@{{ s.cpanel_host }}</span></p>
+<button class="btn red" name="action" value="delete" onclick="return confirm('سایت از داشبورد مادر حذف شود؟ (روی هاست چیزی حذف نمی‌شود)')">حذف از شبکه</button></form>
+</div></div>
+<div class="g2">
+<form class="card" method="post" action="/mother/sites/{{ s.id }}/palette" id="palette">{{ csrf_field() }}<h3>{{ ic('palette') }} پالت رنگی این سایت</h3>
+{% set sp = (s.stats or {}).get('palette') or {} %}
+<div class="swatches" style="margin-bottom:12px">{% for name, p in presets.items() %}<button type="button" data-p='{{ p|tojson }}'><i style="background:{{ p.primary }}"></i><i style="background:{{ p.accent }}"></i>{{ name }}</button>{% endfor %}</div>
+<div class="g3">{% for k, l in [('primary','اصلی'),('secondary','دوم'),('accent','تاکیدی'),('ink','متن'),('header','هدر'),('footer','فوتر')] %}
+<label class="f"><span>{{ l }}</span><input class="in" type="color" name="{{ k }}" value="{{ sp.get(k) or presets['نارنجی دیجی‌پیجی'][k] }}"></label>{% endfor %}</div>
+<button class="btn">{{ ic('paintbrush') }} اعمال روی سایت</button></form>
+<div class="card" id="backups"><h3>{{ ic('database-backup') }} پشتیبان‌گیری</h3>
+<form method="post" action="/mother/sites/{{ s.id }}/backup" class="row">{{ csrf_field() }}
+<button class="btn" name="kind" value="full">{{ ic('hard-drive') }} کامل</button><button class="btn l" name="kind" value="db">{{ ic('database') }} دیتابیس</button>
+<button class="btn l" name="kind" value="files">{{ ic('folder-archive') }} فایل‌ها</button><button class="btn l" name="kind" value="cpanel" title="پشتیبان کامل حساب cPanel با توکن">{{ ic('server') }} کل حساب cPanel</button></form>
+<table class="t small" style="margin-top:10px">{% for b in (backups or []) %}<tr><td class="mono">{{ b.name }}</td><td>{{ fa((b.size / 1048576)|round(1)) }} MB</td>
+<td>{% if b.running %}{{ ic('loader') }}{% else %}<a class="btn s" href="/mother/sites/{{ s.id }}/backup/{{ b.name }}">{{ ic('download') }}</a>{% endif %}</td></tr>{% else %}<tr><td class="muted">نسخه‌ای نیست.</td></tr>{% endfor %}</table></div>
+</div>
+<div class="card"><h3>کارها</h3><table class="t small">{% for t in tasks %}<tr><td>#{{ t.id }}</td><td>{{ t.kind }}</td><td>{{ tag(t.status) }}</td><td>{{ jdt(t.created_at) }}</td><td>{{ jdt(t.updated_at) }}</td></tr>{% endfor %}</table></div>
+{% endblock %}
+{% block scripts %}<script>document.querySelectorAll('[data-p]').forEach(b=>b.onclick=()=>{const p=JSON.parse(b.dataset.p);for(const k in p){const i=document.querySelector(`#palette [name=${k}]`);if(i)i.value=p[k]}});document.querySelectorAll('[data-task]').forEach(el=>{const id=el.dataset.task;const tick=async()=>{const r=await fetch('/mother/tasks/'+id).then(r=>r.json());el.textContent=r.log;el.scrollTop=1e9;
+document.getElementById('ts'+id).textContent=r.status;if(['queued','running'].includes(r.status))setTimeout(tick,5000)};tick()});</script>{% endblock %}

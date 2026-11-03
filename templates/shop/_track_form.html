@@ -1,0 +1,7 @@
+<form class="card" method="post" action="/order-tracking" style="max-width:560px;margin:0 auto">
+<input type="hidden" name="_csrf" value="{{ csrf }}">
+<h3 style="margin-top:0" class="row">{{ ic('truck') }} پیگیری سفارش</h3>
+<p class="small muted">شماره سفارش و شماره موبایلی که با آن سفارش ثبت کرده‌اید را وارد کنید.</p>
+<div class="grid2"><label class="field"><span>شماره سفارش</span><input class="input" name="order" inputmode="numeric" required value="{{ request.values.get('order','') }}"></label>
+<label class="field"><span>شماره موبایل</span><input class="input" name="phone" inputmode="tel" required dir="ltr" value="{{ request.values.get('phone','') }}"></label></div>
+<button class="btn block">{{ ic('search') }} پیگیری</button></form>

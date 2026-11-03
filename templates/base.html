@@ -1,0 +1,140 @@
+<!doctype html>
+{%- set H = (S('wp369_hero_header_options') or {}) -%}
+{%- set FO = (S('wp369_footer_options') or {}) -%}
+{%- set ST = (S('guru_sticky_options') or {}) -%}
+<html lang="fa" dir="rtl" data-theme="{{ request.cookies.get('theme') or 'light' }}">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="csrf" content="{{ csrf }}">
+<script>try{var t=localStorage.getItem('theme');if(t)document.documentElement.dataset.theme=t}catch(e){}</script>
+<title>{% block title %}{{ site_name }}{% endblock %}</title>
+<meta name="description" content="{% block desc %}{{ S('blogdescription') or '' }}{% endblock %}">
+<meta name="theme-color" content="{{ pal.primary }}">
+{% block head %}{% endblock %}
+<link rel="icon" href="/favicon.ico">
+<link rel="stylesheet" href="{{ asset('/static/css/app.css') }}">
+<style>:root{--brand:{{ pal.primary }};--brand-d:{{ pal.secondary }};--accent:{{ pal.accent }};--ftr:{{ FO.color_bg or pal.footer }};
+--hero-bg:{{ H.color_dark_bg or pal.footer }};--hero-title:{{ H.color_hero_title or '#fff' }};--sticky:{{ ST.color_palette or pal.primary }};--contact:{{ ST.contact_color or pal.primary }}}
+:root:not([data-theme=dark]){--hdr:{{ pal.header }}}
+{{ S('platform.custom_css') or '' }}</style>
+{{ (S('platform.head_html') or '')|safe }}
+<script>(function(){var n=0;function s(m,src,l){if(n++>3||!navigator.sendBeacon)return;try{navigator.sendBeacon('/_perf/js',new Blob([JSON.stringify({m:String(m).slice(0,400),s:src||'',l:l||'',p:location.pathname})],{type:'application/json'}))}catch(e){}}
+addEventListener('error',function(e){if(e.message)s(e.message,e.filename,e.lineno)});addEventListener('unhandledrejection',function(e){s('Promise: '+((e.reason&&e.reason.message)||e.reason),'',0)})})();</script>
+</head>
+<body data-monitor="{{ 1 if F.sales_monitor else 0 }}" data-icons="{{ icons_url() }}" data-autoscroll="{{ live_cfg().scroll_seconds if live_cfg().auto_scroll else '' }}" data-cart="{{ cart_count }}">
+{% if F.hero_header and H.topbar_enabled in ('1', 1, True) and H.topbar_text %}<div class="topbar">{{ H.topbar_text }}</div>{% endif %}
+{% set MM = megamenu() %}
+<header class="hdr">
+  <div class="wrap" style="position:relative">
+    <button class="hicon burger" data-open="#drawer" aria-label="منو">{{ ic('menu') }}</button>
+    <a class="logo" href="/">
+      {% if H.logo_image %}<img src="{{ H.logo_image }}" alt="{{ site_name }}">{% else %}<span class="mark">{{ ic('store') }}</span>{% endif %}
+      <span>{{ H.logo_text_fa or (FO.brand_name if FO else '') or site_name }}{% if H.logo_text_en %}<small>{{ H.logo_text_en }}</small>{% endif %}</span>
+    </a>
+    <nav class="nav">
+      {% if MM.enabled and MM['items'] %}
+      <div class="mega"><button type="button">{{ ic('layout-grid') }} {{ MM.title }}</button>
+        <div class="panel">
+          <div class="roots">{% for it in MM['items'] %}<a href="{{ it.cat._url }}" data-mm="{{ loop.index0 }}" class="{{ 'on' if loop.first }}">
+            {% if MM.images and it.cat._img %}<img src="{{ it.cat._img }}" alt="" loading="lazy">{% else %}{{ ic('folder') }}{% endif %}{{ it.cat.name }}</a>{% endfor %}</div>
+          {% for it in MM['items'] %}<div class="kids {{ '' if loop.first else 'hide' }}" data-mmp="{{ loop.index0 }}">
+            <h4>{{ it.cat.name }} <a class="small" href="{{ it.cat._url }}" style="color:var(--brand)">همه محصولات {{ ic('chevron-left') }}</a></h4>
+            <div class="g">{% for k in it.children %}<a href="{{ k._url }}">{% if MM.images and k._img %}<img src="{{ k._img }}" alt="" loading="lazy">{% else %}<span class="ph">{{ ic('tag') }}</span>{% endif %}{{ k.name }}</a>
+            {% else %}<a href="{{ it.cat._url }}">{% if it.cat._img %}<img src="{{ it.cat._img }}" alt="">{% else %}<span class="ph">{{ ic('tag') }}</span>{% endif %}{{ it.cat.name }}</a>{% endfor %}</div></div>{% endfor %}
+        </div></div>
+      {% endif %}
+      {% if F.hero_header %}{% for m in header_menu() %}<a href="{{ m.link }}">{{ m.text }}</a>{% endfor %}{% endif %}
+    </nav>
+    <form class="search" action="/shop/" role="search">
+      {{ ic('search') }}<input name="s" placeholder="جستجوی محصولات…" autocomplete="off" value="{{ request.args.get('s','') }}">
+      <div class="suggest"></div>
+    </form>
+    <div class="hicons">
+      <div class="prefs">
+        <button type="button" data-theme-toggle aria-label="تم">{{ ic('moon', 'theme-moon') }}{{ ic('sun', 'theme-sun') }}</button>
+        <a href="/lang/{{ 'fa' if lang == 'en' else 'en' }}" title="Language">{{ 'FA' if lang == 'en' else 'EN' }}</a>
+      </div>
+      <a class="hicon" href="{{ '/my-account/' if user else '/login' }}">{{ ic('circle-user-round') }} <span class="t">{{ (user.first_name or user.display_name) if user else 'ورود / ثبت‌نام' }}</span></a>
+      <a class="hicon" href="/cart/">{{ ic('shopping-bag') }} <span class="t">سبد خرید</span><span class="n cart-count {{ '' if cart_count else 'hide' }}">{{ fa(cart_count) }}</span></a>
+      {% if is_admin %}<a class="hicon" href="/admin/" title="مدیریت">{{ ic('layout-dashboard') }}</a>{% endif %}
+    </div>
+  </div>
+</header>
+<div class="drawer" id="drawer"><div class="bg"></div><div class="pane">
+  <div class="row sp" style="margin-bottom:8px"><b>{{ site_name }}</b><button class="x" data-close>{{ ic('x') }}</button></div>
+  {% for m in header_menu() %}<a href="{{ m.link }}">{{ ic('chevron-left') }}{{ m.text }}</a>{% endfor %}
+  <a href="/shop/">{{ ic('store') }}فروشگاه</a><a href="/order-tracking">{{ ic('truck') }}پیگیری سفارش</a>
+  <p class="muted small" style="margin:16px 0 6px">دسته‌بندی‌ها</p>
+  {% for c in header_cats() %}<a href="{{ c._url }}">{% if c._img %}<img src="{{ c._img }}" alt="">{% else %}{{ ic('folder') }}{% endif %}{{ c.name }}</a>{% endfor %}
+</div></div>
+
+{% with msgs = get_flashed_messages(with_categories=true) %}{% if msgs %}<div class="wrap" style="margin-top:14px">
+{% for cat, m in msgs %}<div class="alert {{ 'error' if cat == 'error' else 'ok' }}">{{ ic('circle-alert' if cat == 'error' else 'circle-check') }}{{ m }}</div>{% endfor %}</div>{% endif %}{% endwith %}
+
+<main>{% block body %}{% endblock %}</main>
+
+{% if F.footer %}
+<footer class="ftr"><div class="wrap">
+  <div class="cols">
+    <div><h4>{{ FO.brand_name or site_name }}</h4><p>{{ FO.brand_tag or '' }}</p><p class="small">{{ FO.brand_desc or '' }}</p></div>
+    <div><h4>{{ FO.links1_title or 'دسترسی سریع' }}</h4>
+      {% for i in range(1, 7) %}{% if FO['link1_%d_text'|format(i)] %}<a href="{{ FO['link1_%d_url'|format(i)] }}">{{ FO['link1_%d_text'|format(i)] }}</a>{% endif %}{% endfor %}
+      <a href="/shop/">{{ ic('store') }}فروشگاه</a><a href="/order-tracking">{{ ic('truck') }}پیگیری سفارش</a><a href="/blog/">{{ ic('newspaper') }}وبلاگ</a><a href="/my-account/">{{ ic('user') }}حساب کاربری</a></div>
+    <div><h4>{{ FO.links2_title or 'خدمات مشتریان' }}</h4>
+      {% for i in range(1, 7) %}{% if FO['link2_%d_text'|format(i)] %}<a href="{{ FO['link2_%d_url'|format(i)] }}">{{ FO['link2_%d_text'|format(i)] }}</a>{% endif %}{% endfor %}</div>
+    <div><h4>{{ FO.contact_title or 'تماس با ما' }}</h4>
+      {% for k in ('phone_1','phone_2','phone_3','phone_4') %}{% if FO[k] %}<a href="tel:{{ FO[k] }}">{{ ic('phone') }}<span dir="ltr">{{ fa(FO[k]) }}</span></a>{% endif %}{% endfor %}
+      {% if FO.address_text %}<p class="small">{{ ic('map-pin') }} {{ FO.address_text }}</p>{% endif %}
+      {% if FO.license_show in ('1', 1, True) and FO.license_text %}<div class="lic">{{ FO.license_text|safe }}</div>{% endif %}</div>
+  </div>
+  <div class="copy">{{ FO.copyright_text or ('© ' ~ site_name) }}</div>
+</div></footer>
+{% endif %}
+
+{% if F.sticky_suite and ST.enabled in ('1', 1, True, None) %}
+  {% if ST.nav_bar_enabled not in ('0', 0) %}
+  <nav class="bnav"><div class="in">
+    <a href="/" class="{{ 'on' if request.path == '/' }}">{{ ic('house') }}خانه</a>
+    <button data-open="#drawer">{{ ic('layout-grid') }}دسته‌ها</button>
+    <a href="/cart/" class="{{ 'on' if request.path.startswith('/cart') }}">{{ ic('shopping-bag') }}سبد<span class="n cart-count {{ '' if cart_count else 'hide' }}">{{ fa(cart_count) }}</span></a>
+    <a href="{{ ST.order_tracking_link or '/order-tracking' }}">{{ ic('truck') }}پیگیری</a>
+    <a href="{{ '/my-account/' if user else '/login' }}" class="{{ 'on' if request.path.startswith('/my-account') }}">{{ ic('circle-user-round') }}حساب</a>
+  </div></nav>
+  {% endif %}
+  <button class="fab {{ '' if ST.desktop_contact in ('1', 1, True) else 'desk-only' }}" data-open="#contactModal" aria-label="تماس">{{ ic('headset') }}</button>
+  <div class="modal" id="contactModal"><div class="box">
+    <h3>{{ ST.contact_modal_title or 'راه‌های تماس با ما' }} <button class="x" data-close>{{ ic('x') }}</button></h3>
+    {% for i in range(1, 6) %}{% set t = ST['contact_item_%d_title'|format(i)] %}{% if t %}
+      {% set icn = (ST['contact_item_%d_icon'|format(i)] or 'phone|#2196F3').split('|') %}{% set lk = ST['contact_item_%d_link'|format(i)] or '' %}
+      <a class="citem" href="{{ lk }}" target="_blank" rel="noopener"><i style="background:{{ icn[1] if icn|length > 1 else '#2196F3' }}">{{ ic('phone' if lk.startswith('tel:') else ('send' if 'bale' in lk or 't.me' in lk else ('message-circle' if 'wa.me' in lk else 'external-link'))) }}</i><b>{{ t }}</b></a>
+    {% endif %}{% endfor %}
+    {% if ST.support_enabled not in ('0', 0) %}
+    <form id="supportForm" style="margin-top:14px"><p class="small muted">یا پیام بگذارید تا با شما تماس بگیریم:</p>
+      <label class="field"><span>شماره موبایل</span><input class="input" name="phone" inputmode="tel" required></label>
+      <label class="field"><span>پیام شما</span><textarea class="input" name="problem" rows="3" required></textarea></label>
+      <button class="btn block">{{ ic('send') }} ارسال درخواست پشتیبانی</button></form>
+    {% endif %}
+  </div></div>
+{% endif %}
+
+{% if F.assistant and assistant_on() %}
+{% set A = assistant_cfg() %}
+<button class="fab ai" data-chat style="--ai:{{ A.color_custom or '#6366f1' }}" aria-label="دستیار">{{ ic('bot') }}</button>
+<div class="chatw" id="chatw" style="--ai:{{ A.color_custom or '#6366f1' }}" data-welcome="{{ A.welcome_message or ('سلام! من ' ~ A.name ~ ' هستم. چطور می‌توانم کمکتان کنم؟') }}">
+  <header><b class="row" style="gap:8px">{{ ic('sparkles') }}{{ A.name }}</b><button class="x" data-close>{{ ic('x') }}</button></header>
+  <div class="msgs"></div>
+  <form><input class="input" name="message" placeholder="پیام خود را بنویسید…" autocomplete="off">
+  {% if user %}<input type="hidden" name="first_name" value="{{ user.first_name }}"><input type="hidden" name="phone" value="{{ user.phone or '' }}">{% endif %}
+  <button class="btn" aria-label="ارسال">{{ ic('send') }}</button></form>
+  <a class="chat-by" href="https://lemura.ir" target="_blank" rel="noopener" dir="ltr">Lemura AI</a>
+</div>
+{% endif %}
+<a class="mcart" id="mcart" href="/cart/" hidden>{{ ic('shopping-bag') }}<span class="mc-n"><b data-mc-n>{{ fa(cart_count) }}</b> کالا</span><span class="mc-t" data-mc-t></span><span class="mc-go">مشاهده سبد {{ ic('chevron-left') }}</span></a>
+{% block after %}{% endblock %}
+<script src="{{ asset('/static/js/app.js') }}"></script>
+<script src="{{ asset('/static/js/jdp.js') }}" defer></script>
+<script>document.querySelectorAll('[data-mm]').forEach(a=>a.addEventListener('mouseenter',()=>{const p=a.closest('.panel');p.querySelectorAll('[data-mm]').forEach(x=>x.classList.toggle('on',x===a));p.querySelectorAll('[data-mmp]').forEach(k=>k.classList.toggle('hide',k.dataset.mmp!==a.dataset.mm))}));</script>
+{% block scripts %}{% endblock %}
+</body>
+</html>

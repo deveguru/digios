@@ -1,0 +1,15 @@
+{% extends "base.html" %}
+{% block title %}سفارش {{ fa(o.id) }} | {{ site_name }}{% endblock %}
+{% block body %}
+<div class="wrap" style="max-width:760px;margin-top:24px">
+  <div class="card">
+    {% if paid %}<div class="alert ok" style="font-size:1.05em">{{ ic('circle-check') }} {{ success_msg }}</div>{% else %}<div class="alert info">سفارش شما ثبت شد — وضعیت: <b>{{ status }}</b></div>{% endif %}
+    <div class="kpis"><div class="kpi"><span>شماره سفارش</span><b>{{ fa(o.id) }}</b></div><div class="kpi"><span>تاریخ</span><b>{{ jdate(o.created) }}</b></div>
+      <div class="kpi"><span>مبلغ</span><b>{{ money(o.total) }}</b></div><div class="kpi"><span>روش پرداخت</span><b>{{ o.payment_title or '' }}</b></div></div>
+    <table class="t" style="margin-top:16px"><tbody>{% for i in items if i.type in ('line_item', 'fee') %}<tr><td>{{ i.name }}{% if i.type == 'line_item' %} × {{ fa(i.qty) }}{% endif %}</td><td>{{ money(i.total) }}</td></tr>{% endfor %}</tbody></table>
+    {% if not paid and o.status == 'pending' %}<a class="btn" style="margin-top:14px" href="/pay/{{ o.id }}/?key={{ o.order_key }}">پرداخت مجدد</a>{% endif %}
+    <div class="row" style="margin-top:16px"><a class="btn light" href="/order-tracking?order={{ o.id }}&phone={{ o.phone or '' }}">پیگیری سفارش</a><a class="btn ghost" href="/">بازگشت به فروشگاه</a></div>
+    {% if paid %}<p style="margin:20px 0;text-align:center"><a class="btn" href="/?download_invoice=true&order_id={{ o.id }}&order_key={{ o.order_key }}" target="_blank">{{ ic('file-text') }} دانلود فاکتور</a></p>{% endif %}
+  </div>
+</div>
+{% endblock %}

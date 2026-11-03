@@ -1,0 +1,6 @@
+<table class="t rsp"><thead><tr><th>سفارش</th><th>تاریخ</th><th>وضعیت</th><th>مبلغ</th><th></th></tr></thead><tbody>
+{% for o in orders %}{% set st = status_labels.get(o.status) %}<tr>
+  <td data-l="سفارش">#{{ fa(o.id) }}</td><td data-l="تاریخ">{{ jdate(o.created) }}</td>
+  <td data-l="وضعیت">{{ ostatus(o.status) }}</td>
+  <td data-l="مبلغ">{{ money(o.total) }}</td><td><a class="btn sm light" href="/my-account/view-order/{{ o.id }}/">مشاهده</a> <a class="btn sm light" href="/?download_invoice=true&order_id={{ o.id }}&order_key={{ o.order_key }}" target="_blank">دانلود فاکتور</a></td></tr>
+{% else %}<tr><td colspan="5" class="muted">هنوز سفارشی ثبت نکرده‌اید.</td></tr>{% endfor %}</tbody></table>

@@ -1,0 +1,21 @@
+{% extends "admin/base.html" %}{% from "admin/_m.html" import csrf_field, joblist with context %}
+{% block title %}تغییر گروهی قیمت{% endblock %}{% block h1 %}تغییر گروهی قیمت (Bulk Price Manager){% endblock %}
+{% block body %}
+<form class="card" method="post" id="bp">{{ csrf_field() }}
+<div class="g4">
+  <label class="f"><span>دسته‌بندی</span><select class="in" name="category_id"><option value="all">همه محصولات</option>{% for c in cats %}<option value="{{ c.id }}">{{ c.name }} ({{ fa(c.count) }})</option>{% endfor %}</select></label>
+  <label class="f"><span>عملیات</span><select class="in" name="price_action"><option value="increase">افزایش</option><option value="decrease">کاهش</option></select></label>
+  <label class="f"><span>درصد</span><input class="in" name="percentage" value="0"></label>
+  <label class="f"><span>مبلغ ثابت (تومان)</span><input class="in" name="fixed" value="0"></label>
+  <label class="f"><span>اعمال روی</span><select class="in" name="target"><option value="both">قیمت عادی و حراج</option><option value="regular_price">فقط قیمت عادی</option><option value="sale_price">فقط قیمت حراج</option></select></label>
+  <label class="f"><span>رند کردن (تعداد صفر)</span><select class="in" name="round_digits">{% for i in range(0, 6) %}<option value="{{ i }}">{{ fa(i) }}{% if i %} رقم ({{ fa(10 ** i) }}){% else %} — بدون رند{% endif %}</option>{% endfor %}</select></label>
+  <label class="f"><span>جهت رند</span><select class="in" name="round_mode"><option value="round">نزدیک‌ترین</option><option value="up">بالا</option><option value="down">پایین</option></select></label>
+  <label class="f"><span>بازه قیمت (از – تا)</span><div class="row"><input class="in" name="min_price" placeholder="از" style="width:45%"><input class="in" name="max_price" placeholder="تا" style="width:45%"></div></label>
+</div>
+<div class="row"><button type="button" class="btn l" id="prev">پیش‌نمایش</button><button class="btn" onclick="return confirm('تغییر قیمت گروهی اجرا شود؟ این عملیات در لاگ محصولات ثبت می‌شود.')">اجرا</button></div>
+<div id="pv" style="margin-top:12px"></div></form>
+{{ joblist(jobs) }}
+<div class="card"><h3>گزارش عملیات‌ها</h3>{% for l in log %}<div class="small" style="border-bottom:1px solid var(--line);padding:5px 0">{{ l.time }} — {{ l.message }}</div>{% endfor %}</div>
+{% endblock %}
+{% block scripts %}<script>document.getElementById('prev').onclick=async()=>{const fd=new FormData(document.getElementById('bp'));fd.append('preview','1');
+const r=await post('/admin/bulk-price',fd);document.getElementById('pv').innerHTML=`<p>تعداد محصولات: <b>${fa(r.total)}</b></p><table class="t small">${r.rows.map(x=>`<tr><td>${x.name}</td><td>${fa(x.old.toLocaleString())}</td><td>${ICON('arrow-left')}</td><td><b>${fa(x.new.toLocaleString())}</b></td></tr>`).join('')}</table>`}</script>{% endblock %}

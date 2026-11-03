@@ -1,0 +1,17 @@
+{% extends "base.html" %}
+{% block title %}ثبت‌نام | {{ site_name }}{% endblock %}
+{% block body %}
+<div class="wrap" style="max-width:520px;margin-top:30px"><form class="card" method="post">
+  <input type="hidden" name="_csrf" value="{{ csrf }}">
+  <h2 style="margin-top:0">ثبت‌نام</h2>
+  {% if error %}<div class="alert error">{{ error }}</div>{% endif %}
+  <div class="grid2"><label class="field"><span>نام</span><input class="input" name="first_name"></label>
+  <label class="field"><span>نام خانوادگی</span><input class="input" name="last_name"></label></div>
+  <label class="field"><span>نام کاربری *</span><input class="input" name="username" required dir="ltr"></label>
+  <label class="field"><span>موبایل</span><input class="input" name="phone" inputmode="tel" dir="ltr"></label>
+  <label class="field"><span>ایمیل</span><input class="input" name="email" type="email" dir="ltr"></label>
+  <label class="field"><span>رمز عبور *</span><input class="input" type="password" name="password" required minlength="6"></label>
+  <button class="btn block">ایجاد حساب</button>
+  <p class="center small"><a href="/login">ورود</a></p>
+</form></div>
+{% endblock %}

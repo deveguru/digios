@@ -1,0 +1,17 @@
+{% extends "base.html" %}
+{% block title %}پیگیری سفارش | {{ site_name }}{% endblock %}
+{% block head %}{% if public %}<meta name="robots" content="noindex">{% endif %}<style>.trk .trk-code{background:var(--bg-2);border:2px dashed color-mix(in srgb,var(--brand) 40%,transparent);border-radius:16px;padding:16px;margin-top:10px}.trk .trk-code .code{display:block;margin-top:8px;background:var(--card);text-align:left}</style>{% endblock %}
+{% block body %}
+<div class="wrap" style="max-width:880px;margin-top:24px">
+  {% if o %}
+    {% include "shop/_track_card.html" %}
+    {% if not public %}<p class="center"><a class="btn light" href="/order-tracking">{{ ic('search') }} پیگیری سفارش دیگر</a></p>{% endif %}
+  {% else %}
+    {% if error %}<div class="alert error">{{ ic('circle-alert') }} {{ error }}</div>{% endif %}
+    {% include "shop/_track_form.html" %}
+    {% if mine %}<h2 class="row" style="margin-top:30px">{{ ic('package') }} سفارش‌های شما</h2>
+      {% for o in mine %}{% with info = o._info, items = o._items %}{% include "shop/_track_card.html" %}{% endwith %}{% endfor %}
+    {% elif not user %}<p class="center muted small">برای دیدن همه سفارش‌هایتان <a href="/login?next=/order-tracking" style="color:var(--brand);font-weight:700">وارد شوید</a>.</p>{% endif %}
+  {% endif %}
+</div>
+{% endblock %}

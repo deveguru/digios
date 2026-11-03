@@ -1,0 +1,21 @@
+{% extends "admin/base.html" %}{% from "admin/_m.html" import csrf_field, joblist with context %}
+{% block title %}دیده‌بان۳۶۹{% endblock %}{% block h1 %}دیده‌بان۳۶۹ — قیمت رقبا{% endblock %}
+{% block actions %}<form method="post">{{ csrf_field() }}<input type="hidden" name="action" value="run"><button class="btn">{{ ic('refresh-cw') }} بروزرسانی همه قیمت‌ها</button></form>{% endblock %}
+{% block body %}
+{{ joblist(jobs[:1]) }}
+<form class="card" method="post">{{ csrf_field() }}<input type="hidden" name="action" value="settings"><h3>تنظیمات (آخرین اجرا: {{ jdt(cfg.last) if cfg.last else '—' }})</h3>
+<div class="g4"><label class="f"><span>رند کردن قیمت نهایی</span><select class="in" name="rounding_enabled"><option value="">غیرفعال</option><option value="1" {{ 'selected' if cfg.enabled }}>فعال</option></select></label>
+<label class="f"><span>تعداد رقم رند</span><input class="in" name="rounding_digits" value="{{ cfg.digits }}"></label>
+<label class="f"><span>جهت</span><select class="in" name="rounding_direction">{% for k, l in [('round','نزدیک‌ترین'),('up','بالا'),('down','پایین')] %}<option value="{{ k }}" {{ 'selected' if cfg.direction == k }}>{{ l }}</option>{% endfor %}</select></label>
+<label class="f"><span>فاصله اجرای خودکار (ساعت)</span><input class="in" name="cron_interval" value="{{ cfg.interval }}"></label></div><button class="btn l">ذخیره</button></form>
+<form class="card" method="post">{{ csrf_field() }}<input type="hidden" name="action" value="bulk"><h3>محصولات تحت نظر ({{ fa(rows|length) }})</h3>
+<div class="row" style="margin-bottom:10px"><select class="in" name="adjustment_type" style="width:auto"><option value="">نوع تعدیل بدون تغییر</option><option value="percent">درصدی</option><option value="amount">مبلغ ثابت</option><option value="none">بدون تعدیل</option></select>
+<input class="in" name="price_adjustment" placeholder="مقدار" style="width:110px"><select class="in" name="auto_update" style="width:auto"><option value="">خودکار بدون تغییر</option><option value="1">خودکار فعال</option><option value="0">خودکار غیرفعال</option></select>
+<label class="small"><input type="checkbox" name="clear_limits" value="1"> حذف سقف/کف قیمت</label><button class="btn l">اعمال روی انتخاب‌شده‌ها</button></div>
+<div class="tw"><table class="t small"><thead><tr><th><input type="checkbox" data-checkall=".dc"></th><th>محصول</th><th>قیمت ما</th><th>قیمت رقیب</th><th>تعدیل</th><th>کف/سقف</th><th>خودکار</th><th>آخرین بروزرسانی</th></tr></thead><tbody>
+{% for r in rows %}{% set m = r.meta %}<tr><td><input type="checkbox" class="dc" name="ids" value="{{ r.id }}"></td><td><a href="/admin/products/{{ r.id }}">{{ r.name|truncate(50) }}</a><div><a class="muted" href="{{ m._dideban369_competitor_url }}" target="_blank" rel="noopener">{{ m._dideban369_competitor_url|truncate(50) }}</a></div></td>
+<td>{{ money(r.price) }}</td><td>{{ money(m._dideban369_last_competitor_price) if m._dideban369_last_competitor_price else '—' }}</td><td>{{ m._dideban369_adjustment_type or '' }} {{ m._dideban369_price_adjustment or '' }}</td>
+<td>{{ m._dideban369_floor_price or '—' }} / {{ m._dideban369_ceiling_price or '—' }}</td><td>{{ ic('check') if m._dideban369_auto_update in ('1','yes') else '' }}</td><td>{{ jdt(m._dideban369_last_update) if m._dideban369_last_update else '' }}</td></tr>{% endfor %}</tbody></table></div></form>
+<div class="card"><div class="row sp"><h3>کاتالوگ رقبا</h3><form method="post" class="row">{{ csrf_field() }}<input type="hidden" name="action" value="scrape"><select class="in" name="source" style="width:auto">{% for s in sources %}<option>{{ s }}</option>{% endfor %}</select><input class="in" name="page" value="1" style="width:70px"><button class="btn l">دریافت صفحه</button></form></div>
+<div class="tw"><table class="t small"><tbody>{% for c in comps %}<tr><td>{{ c.source }}</td><td><a href="{{ c.product_url }}" target="_blank" rel="noopener">{{ c.product_title }}</a></td><td>{{ c.product_price }}</td><td>{{ jdt(c.last_updated) }}</td></tr>{% endfor %}</tbody></table></div></div>
+{% endblock %}

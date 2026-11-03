@@ -1,0 +1,19 @@
+{# special offers / product slider with side banner + countdown; expects s (rendered section) #}
+{% set band = s.type == 'deals' or s.band %}
+<div class="wrap"><section class="sec deals {{ 'band' if band }} {{ 'b-end' if s.banner_pos == 'end' }} {{ 'has-b' if s._banner }}" data-rail
+  {% if s.color1 or s.color2 %}style="--d1:{{ s.color1 or 'var(--brand)' }};--d2:{{ s.color2 or s.color1 or 'var(--accent)' }}"{% endif %}>
+  <div class="deals-h">
+    <div class="t"><h2>{{ ic('zap' if band else 'percent') }}{{ s.title or 'تخفیف‌های ویژه' }}</h2>{% if s.subtitle %}<p>{{ s.subtitle }}</p>{% endif %}</div>
+    {% if s._end %}<div class="cd" data-end="{{ s._end }}" data-now="{{ s._now }}" data-mode="{{ s.countdown }}" aria-label="زمان باقی‌مانده">
+      <span class="cd-l">{{ ic('timer') }}{{ s.countdown_label or 'زمان باقی‌مانده' }}</span>
+      <span class="u"><b data-u="d">۰</b><i>روز</i></span><span class="u"><b data-u="h">۰۰</b><i>ساعت</i></span><span class="u"><b data-u="m">۰۰</b><i>دقیقه</i></span><span class="u"><b data-u="s">۰۰</b><i>ثانیه</i></span>
+    </div>{% endif %}
+    <div class="tools">{% if s.link %}<a class="more" href="{{ s.link }}">مشاهده همه {{ ic('chevron-left') }}</a>{% endif %}
+      <button class="nav-b" data-prev aria-label="قبلی">{{ ic('chevron-right') }}</button><button class="nav-b" data-next aria-label="بعدی">{{ ic('chevron-left') }}</button></div>
+  </div>
+  <div class="deals-b">
+    {% if s._banner %}<a class="deals-ban" href="{{ s.banner_link or s.link or '#' }}" draggable="false"><img src="{{ s._banner }}" alt="{{ s.banner_title or s.title or '' }}" loading="lazy" draggable="false">
+      {% if s.banner_title %}<span>{{ s.banner_title }}</span>{% endif %}</a>{% endif %}
+    <div class="rail snap">{% for p in s.products %}{{ card(p) }}{% endfor %}</div>
+  </div>
+</section></div>

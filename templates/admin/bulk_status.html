@@ -1,0 +1,18 @@
+{% extends "admin/base.html" %}{% from "admin/_m.html" import csrf_field, joblist, st with context %}
+{% block title %}تغییر وضعیت گروهی{% endblock %}{% block h1 %}تغییر وضعیت گروهی و تاریخچه (WC Grand Order){% endblock %}
+{% block body %}
+<form class="card" method="post">{{ csrf_field() }}<h3>تغییر وضعیت همه سفارش‌های یک وضعیت</h3>
+<div class="g4">
+  <label class="f"><span>از وضعیت</span><select class="in" name="from_status">{% for s in statuses %}<option value="{{ s.slug }}">{{ s.label }} ({{ fa(counts.get(s.slug, 0)) }})</option>{% endfor %}</select></label>
+  <label class="f"><span>به وضعیت</span><select class="in" name="to_status">{% for s in statuses %}<option value="{{ s.slug }}">{{ s.label }}</option>{% endfor %}</select></label>
+  <label class="f"><span>بازه زمانی</span><select class="in" name="date_filter"><option value="all">همه</option><option value="today">امروز</option><option value="week">۷ روز اخیر</option><option value="month">۳۰ روز اخیر</option></select></label>
+  <label class="f"><span>&nbsp;</span><label class="small"><input type="checkbox" name="notify" value="1"> ارسال پیامک</label></label>
+</div><button class="btn" onclick="return confirm('تغییر وضعیت گروهی اجرا شود؟')">اجرا در پس‌زمینه</button></form>
+{{ joblist(running) }}
+<div class="card"><h3>کارهای گروهی</h3><div class="tw"><table class="t small"><thead><tr><th>#</th><th>از</th><th>به</th><th>کل</th><th>موفق</th><th>ناموفق</th><th>وضعیت</th><th>کاربر</th><th>زمان</th></tr></thead><tbody>
+{% for j in jobs %}<tr><td><a href="?batch={{ j.batch_id }}">{{ j.id }}</a></td><td>{{ j.from_status }}</td><td>{{ j.to_status }}</td><td>{{ fa(j.total_orders) }}</td><td class="ok">{{ fa(j.success_count) }}</td><td class="bad">{{ fa(j.failed_count) }}</td><td>{{ j.job_status }}</td><td>{{ j.user_login }}</td><td>{{ jdt(j.created_at) }}</td></tr>{% endfor %}</tbody></table></div></div>
+<div class="card"><div class="row sp"><h3>تاریخچه وضعیت سفارش‌ها</h3><form class="row"><input class="in" name="order" placeholder="شماره سفارش" value="{{ request.args.order or '' }}" style="width:160px"><button class="btn l">جستجو</button></form></div>
+<div class="tw"><table class="t small"><thead><tr><th>سفارش</th><th>از</th><th>به</th><th>کاربر</th><th>IP</th><th>زمان</th></tr></thead><tbody>
+{% for l in logs %}<tr><td><a href="/admin/orders/{{ l.order_id }}">#{{ fa(l.order_id) }}</a></td><td>{{ l.from_status }}</td><td>{{ l.to_status }}</td><td>{{ l.user_login }}</td><td class="mono">{{ l.ip_address }}</td><td>{{ jdt(l.created_at) }}</td></tr>{% endfor %}</tbody></table></div>
+<div class="pager"><a href="?page={{ page + 1 }}">صفحه بعد {{ ic('chevron-left') }}</a></div></div>
+{% endblock %}

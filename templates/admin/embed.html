@@ -1,0 +1,11 @@
+<!doctype html>
+<html lang="fa" dir="rtl" data-theme="{{ request.cookies.get('theme') or 'light' }}"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="csrf" content="{{ csrf }}"><script>try{var t=localStorage.getItem('theme');if(t)document.documentElement.dataset.theme=t}catch(e){}</script>
+<link rel="stylesheet" href="{{ asset('/static/css/admin.css') }}"><style>:root{--brand:{{ pal.primary }};--brand-d:{{ pal.secondary }};--accent:{{ pal.accent }}}body{background:var(--bg)}.main{padding:10px}</style><script>window.OSC={{ dots_json('order')|tojson }};</script><script src="{{ asset('/static/js/tags.js') }}"></script>
+</head>
+<body data-icons="{{ icons_url() }}"><main class="main">{% block body %}{% endblock %}</main>
+<script>const CSRF=document.querySelector('meta[name=csrf]').content;const EN=document.documentElement.lang==='en';const fa=n=>EN?String(n):String(n).replace(/\d/g,d=>'۰۱۲۳۴۵۶۷۸۹'[d]);
+const ICON=n=>`<svg class="ic"><use href="${document.body.dataset.icons}#${n}"></use></svg>`;
+async function post(url,data){const fd=data instanceof FormData?data:new FormData();if(!(data instanceof FormData))for(const k in data)fd.append(k,data[k]);fd.append('_csrf',CSRF);
+const r=await fetch(url,{method:'POST',body:fd,headers:{'X-CSRF':CSRF,'X-Requested-With':'fetch'}});try{return await r.json()}catch(e){return{ok:false}}}</script>
+{% block scripts %}{% endblock %}</body></html>

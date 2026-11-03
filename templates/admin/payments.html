@@ -1,0 +1,38 @@
+{% extends "admin/base.html" %}{% from "admin/_m.html" import csrf_field with context %}
+{% block title %}درگاه‌های پرداخت{% endblock %}{% block h1 %}درگاه‌های پرداخت{% endblock %}
+{% block body %}
+<form class="card" method="post">{{ csrf_field() }}
+<h3>آقای پرداخت</h3><div class="g3">
+<label class="f"><span>فعال</span><select class="in" name="aqaye_enabled"><option value="">خیر</option><option value="1" {{ 'selected' if p.aqaye_enabled }}>بله</option></select></label>
+<label class="f"><span>کد پین درگاه {{ '(' ~ pin_mask ~ ')' if pin_mask }}</span><input class="in mono" name="aqaye_pin" placeholder="برای تغییر وارد کنید" autocomplete="off"></label>
+<label class="f"><span>حالت آزمایشی (sandbox)</span><select class="in" name="aqaye_sandbox"><option value="">خیر</option><option value="1" {{ 'selected' if p.aqaye_sandbox }}>بله</option></select></label></div>
+<p class="small muted">آدرس بازگشت (callback): <span class="mono">{{ callback }}</span></p>
+<h3>زیبال</h3>{% if not F.zibal_pay %}<div class="alert info small">قابلیت «درگاه پرداخت زیبال» برای این سایت خاموش است (از داشبورد مادر روشن می‌شود).</div>{% endif %}
+<div class="g3">
+<label class="f"><span>فعال</span><select class="in" name="zibal_enabled"><option value="">خیر</option><option value="1" {{ 'selected' if z.zibal_enabled }}>بله</option></select></label>
+<label class="f"><span>کد مرچنت زیبال {{ '(' ~ zm_mask ~ ')' if zm_mask }}</span><input class="in mono" name="zibal_merchant" placeholder="برای تغییر وارد کنید" autocomplete="off"></label>
+<label class="f"><span>تطبیق شماره موبایل با کارت</span><select class="in" name="zibal_match_mobile"><option value="">خیر</option><option value="1" {{ 'selected' if z.zibal_match_mobile }}>بله</option></select></label>
+<label class="f"><span>عنوان در صفحه پرداخت</span><input class="in" name="zibal_title" value="{{ z.zibal_title }}"></label>
+<label class="f"><span>توضیح</span><input class="in" name="zibal_description" value="{{ z.zibal_description }}"></label>
+<label class="f"><span>سرور خارج از ایران (zibal.io)</span><select class="in" name="zibal_io"><option value="">خیر</option><option value="1" {{ 'selected' if z.zibal_io }}>بله</option></select></label>
+<label class="f"><span>پیام پرداخت موفق</span><input class="in" name="zibal_success_msg" value="{{ z.zibal_success_msg }}"></label>
+<label class="f"><span>پیام پرداخت ناموفق</span><input class="in" name="zibal_failed_msg" value="{{ z.zibal_failed_msg }}"></label></div>
+<p class="small muted">آدرس بازگشت: <span class="mono">{{ zibal_cb }}</span> — مبلغ به ریال (تومان × ۱۰) به زیبال ارسال می‌شود، دقیقاً مثل افزونه ووکامرس.
+{% if zibal_wp %}<button class="btn s l" name="zibal_import" value="1" onclick="return confirm('اطلاعات درگاه زیبال از تنظیمات سایت وردپرسی قبلی دوباره خوانده شود؟')">{{ ic('download') }} خواندن از تنظیمات وردپرس قبلی</button>{% endif %}</p>
+<h3>{{ ic('truck') }} روش ارسال (نمایش در سبد خرید و تسویه حساب)</h3>
+<label class="f"><span>متن روش ارسال — هر روش را با «|» جدا کنید و عنوان را با «=» از توضیح</span><textarea class="in" name="ship_title" rows="5">{{ ship.raw }}</textarea></label>
+<p class="small muted">همان متن روش ارسال ووکامرس سایت قبلی (منطقه «سراسر ایران»).</p>
+<h3>سایر روش‌ها</h3><div class="g3">
+<label class="f"><span>پرداخت با کیف پول</span><select class="in" name="wallet_enabled"><option value="">خیر</option><option value="1" {{ 'selected' if p.wallet_enabled }}>بله</option></select></label>
+<label class="f"><span>پرداخت در محل</span><select class="in" name="cod_enabled"><option value="">خیر</option><option value="1" {{ 'selected' if p.cod_enabled }}>بله</option></select></label></div>
+{% if F.cross_payment %}<h3>Cross Payment Gateway — پرداخت از طریق سایت کمکی</h3><div class="g3">
+<label class="f"><span>فعال</span><select class="in" name="cp_enabled"><option value="">خیر</option><option value="1" {{ 'selected' if cp.enabled }}>بله</option></select></label>
+<label class="f"><span>نقش این سایت</span><select class="in" name="cp_role"><option value="main">اصلی (سفارش اینجا، پرداخت در سایت کمکی)</option><option value="helper" {{ 'selected' if cp.role == 'helper' }}>کمکی (دریافت پرداخت برای سایت اصلی)</option></select></label>
+<label class="f"><span>آدرس سایت همکار</span><input class="in mono" name="cp_partner" value="{{ cp.partner }}"></label>
+<label class="f"><span>توکن مشترک {{ '(تنظیم شده)' if cp.token }}</span><input class="in mono" name="cp_token" autocomplete="off" placeholder="برای تغییر وارد کنید"></label>
+<label class="f"><span>عنوان روش پرداخت</span><input class="in" name="cp_title" value="{{ cp.title }}"></label><label class="f"><span>توضیح</span><input class="in" name="cp_description" value="{{ cp.description }}"></label></div>
+<p class="small muted">مسیرهای API سازگار با افزونه وردپرسی: <span class="mono">/wp-json/cross-payment/v1/(create-order|payment-callback|payment-failed|check-status)</span></p>{% endif %}
+<button class="btn">ذخیره</button></form>
+<div class="card tw"><h3>آخرین تراکنش‌ها</h3><table class="t small"><thead><tr><th>زمان</th><th>سفارش</th><th>نوع</th><th>درگاه</th><th>مبلغ</th><th>شناسه</th><th>وضعیت</th></tr></thead>
+{% for x in recent %}<tr><td>{{ jdt(x.created) }}</td><td>{% if x.order_id %}<a href="/admin/orders/{{ x.order_id }}">#{{ x.order_id }}</a>{% endif %}</td><td>{{ x.purpose }}</td><td>{{ x.gateway }}</td><td>{{ money(x.amount) }}</td><td class="mono">{{ x.transid }}</td><td>{{ tag(x.status if x.status != 'failed' else 'fail') }}</td></tr>{% endfor %}</table></div>
+{% endblock %}

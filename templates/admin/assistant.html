@@ -1,0 +1,31 @@
+{% extends "admin/base.html" %}{% from "admin/_m.html" import csrf_field with context %}
+{% block title %}دستیار هوشمند{% endblock %}{% block h1 %}دستیار هوشمند لمورا{% endblock %}
+{% block body %}
+<div class="tabs">{% for k, l in [('settings','تنظیمات'),('kb','مخزن دانش'),('chats','سوابق چت'),('contacts','مخاطبین')] %}<a href="?tab={{ k }}" class="{{ 'on' if tab == k }}">{{ l }}</a>{% endfor %}</div>
+{% if tab == 'settings' %}
+<form class="card" method="post">{{ csrf_field() }}<input type="hidden" name="action" value="settings"><div class="g3">
+<label class="f"><span>کلید API لمورا {{ '(تنظیم شده — برای تغییر وارد کنید)' if s.api_key_set }}</span><input class="in mono" name="api_key" autocomplete="off"></label>
+<label class="f"><span>آدرس API</span><input class="in mono" name="api_url" value="{{ s.api_url }}"></label><label class="f"><span>مدل</span><input class="in mono" name="model" value="{{ s.model }}"></label>
+<label class="f"><span>نام دستیار</span><input class="in" name="bot_name" value="{{ s.bot_name }}"></label><label class="f"><span>رنگ</span><input class="in" type="color" name="color_custom" value="{{ s.color_custom }}"></label>
+<label class="f"><span>حداکثر توکن</span><input class="in" name="max_tokens" value="{{ s.max_tokens }}"></label>
+<label class="f" style="grid-column:1/-1"><span>پیام خوش‌آمد</span><input class="in" name="welcome_message" value="{{ s.welcome_message }}"></label>
+<label class="f" style="grid-column:1/-1"><span>دستورالعمل اضافه</span><textarea class="in" name="system_prompt" rows="4">{{ s.system_prompt }}</textarea></label>
+<label class="f"><span>توکن ربات تلگرام</span><input class="in mono" name="telegram_bot_token" value="{{ s.telegram_bot_token }}"></label><label class="f"><span>Secret تلگرام</span><input class="in mono" name="telegram_secret_token" value="{{ s.telegram_secret_token }}"></label></div>
+<label class="small" style="display:block"><input type="checkbox" name="wc_product_search" value="1" {{ 'checked' if s.wc_product_search }}> جستجوی محصولات</label>
+<label class="small" style="display:block"><input type="checkbox" name="wc_order_tracking" value="1" {{ 'checked' if s.wc_order_tracking }}> پیگیری سفارش (Guru Tracker)</label>
+<p class="small muted">Webhook تلگرام: <span class="mono">{{ webhook }}</span></p>
+<div class="row"><button class="btn">ذخیره</button><button class="btn l" name="action" value="test">تست اتصال</button></div></form>
+{% elif tab == 'kb' %}
+<form class="card" method="post">{{ csrf_field() }}<input type="hidden" name="action" value="kb_save"><div class="g4"><label class="f"><span>عنوان</span><input class="in" name="title" required></label><label class="f"><span>لینک</span><input class="in" name="url"></label><label class="f"><span>تلفن پشتیبانی</span><input class="in" name="support_phone"></label><label class="f"><span>ترتیب</span><input class="in" name="sort_order" value="0"></label></div>
+<label class="f"><span>توضیحات</span><textarea class="in" name="description" rows="3"></textarea></label><button class="btn">افزودن</button></form>
+{% for k in kb %}<form class="card" method="post">{{ csrf_field() }}<input type="hidden" name="id" value="{{ k.id }}"><div class="g4"><input class="in" name="title" value="{{ k.title }}"><input class="in" name="url" value="{{ k.url }}"><input class="in" name="support_phone" value="{{ k.support_phone }}"><input class="in" name="sort_order" value="{{ k.sort_order }}"></div>
+<textarea class="in" name="description" rows="2" style="margin-top:6px">{{ k.description }}</textarea><div class="row" style="margin-top:6px"><button class="btn s" name="action" value="kb_save">ذخیره</button><button class="btn s red" name="action" value="kb_delete">حذف</button></div></form>{% endfor %}
+{% elif tab == 'chats' %}
+<div class="g2"><div class="card tw"><table class="t small">{% for c in chats %}<tr><td><a href="?tab=chats&chat={{ c.id }}">{{ c.contact_first_name }} {{ c.contact_last_name }}</a><div class="mono muted">{{ c.contact_phone }}</div></td><td>{{ jdt(c.updated_at) }}</td></tr>{% endfor %}</table>
+<div class="pager"><a href="?tab=chats&page={{ page + 1 }}">بعدی {{ ic('chevron-left') }}</a></div></div>
+<div class="card">{% for m in msgs or [] %}<div style="margin-bottom:8px;padding:8px 10px;border-radius:10px;background:{{ '#eef2ff' if m.role == 'user' else '#f8fafc' }}"><b class="small">{{ 'کاربر' if m.role == 'user' else 'دستیار' }}</b><div style="white-space:pre-wrap">{{ m.content }}</div></div>{% else %}<p class="muted">یک گفتگو را انتخاب کنید.</p>{% endfor %}</div></div>
+{% else %}
+<div class="card tw"><table class="t small"><thead><tr><th>نام</th><th>موبایل</th><th>IP</th><th>زمان</th></tr></thead>{% for c in contacts %}<tr><td>{{ c.first_name }} {{ c.last_name }}</td><td class="mono">{{ c.phone }}</td><td class="mono">{{ c.user_ip }}</td><td>{{ jdt(c.created_at) }}</td></tr>{% endfor %}</table>
+<div class="pager"><a href="?tab=contacts&page={{ page + 1 }}">بعدی {{ ic('chevron-left') }}</a></div></div>
+{% endif %}
+{% endblock %}

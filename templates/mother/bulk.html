@@ -1,0 +1,23 @@
+{% extends "admin/base.html" %}{% from "admin/_m.html" import csrf_field with context %}
+{% block title %}عملیات گروهی شبکه{% endblock %}{% block h1 %}ویرایش و انتقال گروهی محصولات در همه سایت‌ها{% endblock %}
+{% block body %}
+<div class="g2">
+<form class="card" method="post">{{ csrf_field() }}<input type="hidden" name="action" value="edit"><h3>ویرایش گروهی</h3>
+<label class="f"><span>سایت‌ها</span><div><label class="small"><input type="checkbox" name="sites" value="0"> سایت اصلی</label> {% for s in sites %}<label class="small" style="margin-right:10px"><input type="checkbox" name="sites" value="{{ s.id }}"> {{ s.domain }}</label>{% endfor %}</div></label>
+<label class="f"><span>انتخاب محصولات با SKU (هر خط یا با کاما)</span><textarea class="in" name="skus" rows="2"></textarea></label>
+<label class="f"><span>یا شناسه شبکه (مثل digipg:1234)</span><textarea class="in" name="refs" rows="2"></textarea></label>
+<label class="f"><span>یا نامک دسته‌بندی</span><input class="in" name="category_slug"></label>
+<p class="small muted">اگر هیچ‌کدام پر نشود، روی همه محصولات اعمال می‌شود.</p>
+<div class="g4"><label class="f"><span>تغییر قیمت ٪ (+/−)</span><input class="in" name="price_pct" value="0"></label><label class="f"><span>رند (رقم)</span><input class="in" name="round" value="0"></label>
+<label class="f"><span>موجودی</span><select class="in" name="stock_status"><option value="">بدون تغییر</option><option value="instock">موجود</option><option value="outofstock">ناموجود</option></select></label>
+<label class="f"><span>انتشار</span><select class="in" name="status"><option value="">بدون تغییر</option><option value="publish">منتشر</option><option value="draft">پیش‌نویس</option></select></label></div>
+<button class="btn" onclick="return confirm('روی سایت‌های انتخاب‌شده اعمال شود؟')">اجرا</button></form>
+<form class="card" method="post">{{ csrf_field() }}<input type="hidden" name="action" value="copy"><h3>انتقال محصولات سایت اصلی به سایت‌ها</h3>
+<label class="f"><span>سایت‌های مقصد</span><div>{% for s in sites %}<label class="small" style="margin-left:10px"><input type="checkbox" name="sites" value="{{ s.id }}"> {{ s.domain }}</label>{% else %}<span class="muted small">هنوز سایتی متصل نشده است.</span>{% endfor %}</div></label>
+<label class="f"><span>شناسه محصولات (با کاما)</span><input class="in" name="product_ids"></label>
+<label class="f"><span>یا دسته‌ها</span><div style="max-height:160px;overflow:auto;border:1px solid var(--line);border-radius:9px;padding:6px">{% for c in cats if c.parent == 0 %}<label class="small" style="display:inline-block;margin-left:8px"><input type="checkbox" name="cats" value="{{ c.id }}"> {{ c.name }}</label>{% endfor %}</div></label>
+<div class="g2"><label class="f"><span>تغییر قیمت (٪)</span><input class="in" name="price_pct" value="0"></label><label class="f"><span>رند (رقم)</span><input class="in" name="round" value="0"></label></div>
+<button class="btn">شروع انتقال</button></form>
+</div>
+<div class="card"><h3>کارهای گروهی</h3>{% for t in tasks %}<details><summary class="small">#{{ t.id }} — {{ t.kind }} — سایت {{ t.site_id }} — {{ tag(t.status) }} — {{ jdt(t.updated_at) }}</summary><pre class="log">{{ t.log }}</pre></details>{% endfor %}</div>
+{% endblock %}

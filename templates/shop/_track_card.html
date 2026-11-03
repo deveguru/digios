@@ -1,0 +1,21 @@
+{# one order's tracking block; expects o, info, items #}
+<div class="card trk" style="--tc:{{ info.cfg.primary_color or 'var(--brand)' }}">
+  <div class="row sp"><h3 style="margin:0" class="row">{{ ic('package-check') }} سفارش #{{ fa(o.id) }}</h3>{{ ostatus(o.status) }}</div>
+  <p class="muted small row" style="gap:14px">{{ ic('calendar') }} {{ jdt(o.created) }} <span>{{ ic('wallet') }} {{ money(o.total) }}</span>{% if o.customer_name %}<span>{{ ic('user') }} {{ o.customer_name }}</span>{% endif %}</p>
+  {% if info.cancelled %}<div class="alert error">{{ ic('circle-x') }} این سفارش {{ info.status_label }} است.</div>
+  {% else %}<div class="tl">{% for k, label in info.steps %}<div class="st {{ 'done' if loop.index0 <= info.current }}"><i>{{ fa(loop.index) }}</i>{{ label }}</div>{% endfor %}</div>{% endif %}
+  {% if info.has_data and info.locked %}
+    <div class="alert info">{{ ic('hourglass') }} اطلاعات رهگیری پس از {{ fa(info.remaining_hours) }} ساعت دیگر قابل مشاهده خواهد بود</div>
+  {% elif info.has_data %}
+    {% if info.tr.tracking_code %}<div class="trk-code">
+      <b class="row">{{ ic('truck') }} کد رهگیری {{ info.carrier.name if info.carrier else 'مرسوله' }}:</b>
+      <span class="code" id="tc{{ o.id }}">{{ info.tr.tracking_code }}</span>
+      <div class="row" style="margin-top:10px"><button type="button" class="btn sm" onclick="navigator.clipboard.writeText(document.getElementById('tc{{ o.id }}').innerText).then(()=>toast('کپی شد'))">{{ ic('copy') }} کپی</button>
+      {% if info.carrier %}<a class="btn sm light" href="{{ info.carrier.url }}" target="_blank" rel="noopener">{{ ic('external-link') }} رهگیری در سایت {{ info.carrier.name }}</a>{% endif %}</div></div>{% endif %}
+    {% if info.tr.waybill_image_url %}<p class="small muted" style="margin:14px 0 6px">{{ ic('file-image') }} تصویر بارنامه:</p>
+      <a href="{{ info.tr.waybill_image_url }}" target="_blank"><img src="{{ info.tr.waybill_image_url }}" alt="بارنامه" style="max-height:340px;border-radius:14px;border:1px solid var(--line)"></a>{% endif %}
+    {% if info.cfg.terminal_notice %}<div class="alert info">{{ info.cfg.terminal_notice|safe }}</div>{% endif %}
+  {% else %}<div class="alert info">{{ ic('hourglass') }} اطلاعات رهگیری هنوز ثبت نشده است</div>{% endif %}
+  {% if info.torob.tracking_code and not info.tr %}<p class="small">کد رهگیری: <span class="code">{{ info.torob.tracking_code }}</span> {{ info.torob.carrier or '' }}</p>{% endif %}
+  {% if items %}<table class="t" style="margin-top:12px"><tbody>{% for i in items if i.type == 'line_item' %}<tr><td>{{ i.name }}</td><td>× {{ fa(i.qty) }}</td><td>{{ money(i.total) }}</td></tr>{% endfor %}</tbody></table>{% endif %}
+</div>

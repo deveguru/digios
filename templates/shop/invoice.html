@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html dir="rtl">
+<head><meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="robots" content="noindex">
+    <title>فاکتور #{{ o.id }}</title>
+    {% set pc = cfg.invoice_color or '#0073aa' %}
+    <style>
+        @font-face { font-family: 'Lalezar'; font-weight: normal; font-style: normal; }
+        @font-face { font-family: 'Vazir'; font-weight: normal; font-style: normal; }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Vazir', Tahoma, Arial, sans-serif; direction: rtl; background-color: #f5f5f5; padding: 20px; font-size: 15px; line-height: 1.6; }
+        .invoice-container { max-width: 800px; margin: 0 auto; background: #fff; padding: 30px; box-shadow: 0 0 10px rgba(0,0,0,0.1); border-radius: 8px; }
+        .invoice-header { text-align: center; margin-bottom: 30px; padding-bottom: 20px; border-bottom: 3px solid {{ pc }}; }
+        .invoice-logo { margin-bottom: 15px; }
+        .invoice-logo img { max-width: 200px; height: auto; }
+        .invoice-header h1 { font-size: 30px; color: #333; margin-bottom: 10px; font-weight: 700; font-family: 'Lalezar', sans-serif; }
+        .invoice-header .store-name { font-size: 18px; color: #666; font-weight: 600; font-family: 'Lalezar', sans-serif; }
+        .invoice-info { display: flex; justify-content: space-between; margin-bottom: 30px; gap: 20px; }
+        .invoice-info-block { flex: 1; }
+        .invoice-info-block h3 { font-size: 16px; font-weight: 700; color: {{ pc }}; margin-bottom: 10px; border-bottom: 2px solid #eee; padding-bottom: 5px; font-family: 'Lalezar', sans-serif; }
+        .invoice-info-block p { margin: 5px 0; font-size: 14px; font-weight: normal; }
+        .invoice-info-block strong { font-weight: 700; }
+        .invoice-items { margin-bottom: 30px; }
+        .invoice-items h3 { font-size: 16px; font-weight: 700; color: {{ pc }}; margin-bottom: 15px; border-bottom: 2px solid #eee; padding-bottom: 5px; font-family: 'Lalezar', sans-serif; }
+        .items-table { width: 100%; border-collapse: collapse; margin-bottom: 20px; }
+        .items-table thead { background-color: {{ pc }}; color: #fff; }
+        .items-table th { padding: 12px; text-align: right; font-weight: 700; font-size: 14px; font-family: 'Lalezar', sans-serif; }
+        .items-table td { padding: 12px; border-bottom: 1px solid #eee; font-size: 14px; font-weight: normal; }
+        .items-table tbody tr:hover { background-color: #f9f9f9; }
+        .items-table .text-center { text-align: center; }
+        .invoice-totals { margin-top: 20px; padding: 20px; background-color: #f9f9f9; border-radius: 5px; }
+        .invoice-totals table { width: 100%; max-width: 400px; margin-right: auto; }
+        .invoice-totals td { padding: 8px; font-size: 15px; font-weight: normal; }
+        .invoice-totals .total-row { border-top: 2px solid {{ pc }}; font-size: 17px; font-weight: 700; color: {{ pc }}; font-family: 'Lalezar', sans-serif; }
+        .invoice-totals .total-row td { padding-top: 15px; }
+        .invoice-notes { margin-top: 30px; padding: 15px; background-color: #fffbcc; border: 1px solid #e6db55; border-radius: 5px; }
+        .invoice-notes h3 { font-size: 14px; font-weight: 700; color: #333; margin-bottom: 10px; font-family: 'Lalezar', sans-serif; }
+        .invoice-notes p { font-size: 14px; font-weight: normal; line-height: 1.6; }
+        .print-button-container { text-align: center; margin-bottom: 20px; }
+        .print-button { background-color: {{ pc }}; color: white; border: none; padding: 12px 30px; font-size: 16px; cursor: pointer; border-radius: 5px; font-weight: 600; box-shadow: 0 2px 5px rgba(0,0,0,0.2); font-family: 'Vazir', sans-serif; }
+        .print-button:hover { opacity: 0.9; }
+        @media print { body { background-color: #fff; padding: 0; } .invoice-container { box-shadow: none; padding: 0; } .print-button-container { display: none; } @page { size: A4; margin: 15mm; } }
+    </style>
+</head>
+<body>
+<div class="print-button-container"><button class="print-button" onclick="window.print();">چاپ فاکتور</button></div>
+<div class="invoice-container">
+    <div class="invoice-header">
+        {% if cfg.invoice_logo %}<div class="invoice-logo"><img src="{{ cfg.invoice_logo }}" alt="{{ cfg.store_name }}"></div>{% endif %}
+        <h1>فاکتور</h1>
+        <div class="store-name">{{ cfg.store_name }}</div>
+    </div>
+    <div class="invoice-info">
+        <div class="invoice-info-block">
+            <h3>اطلاعات سفارش</h3>
+            <p><strong>شماره سفارش:</strong> #{{ o.id }}</p>
+            <p><strong>تاریخ سفارش:</strong> {{ jdate(o.created) }}</p>
+            <p><strong>روش پرداخت:</strong> {{ o.payment_title or '' }}</p>
+            <p><strong>وضعیت:</strong> {{ status_label }}</p>
+        </div>
+        <div class="invoice-info-block">
+            <h3>اطلاعات مشتری</h3>
+            <p><strong>نام:</strong> {{ s.name }}</p>
+            <p><strong>تلفن:</strong> {{ (o.billing or {}).get('phone') or o.phone or '' }}</p>
+            <p><strong>ایمیل:</strong> {{ (o.billing or {}).get('email') or '' }}</p>
+            <p><strong>آدرس:</strong> {{ s.address }}</p>
+            <p><strong>کد پستی:</strong> {{ (o.billing or {}).get('postcode') or '' }}</p>
+        </div>
+    </div>
+    <div class="invoice-items">
+        <h3>اقلام سفارش</h3>
+        <table class="items-table">
+            <thead><tr><th>محصول</th><th class="text-center">تعداد</th><th>قیمت واحد</th><th>جمع</th></tr></thead>
+            <tbody>
+                {% for i in lines %}
+                <tr><td><strong>{{ i.name }}</strong></td><td class="text-center">{{ i.qty }}</td><td>{{ money((i.subtotal or i.total or 0) / (i.qty or 1)) }}</td><td><strong>{{ money(i.total) }}</strong></td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        <div class="invoice-totals">
+            <table>
+                <tr><td>جمع جزء:</td><td><strong>{{ money(o.subtotal or lines|sum(attribute='subtotal')) }}</strong></td></tr>
+                {% if (o.shipping_total or 0) > 0 %}<tr><td>هزینه ارسال:</td><td><strong>{{ money(o.shipping_total) }}</strong></td></tr>{% endif %}
+                {% if (o.tax_total or 0) > 0 %}<tr><td>مالیات:</td><td><strong>{{ money(o.tax_total) }}</strong></td></tr>{% endif %}
+                {% if (o.discount_total or 0) > 0 %}<tr><td>تخفیف:</td><td><strong>-{{ money(o.discount_total) }}</strong></td></tr>{% endif %}
+                <tr class="total-row"><td>جمع کل:</td><td><strong>{{ money(o.total) }}</strong></td></tr>
+            </table>
+        </div>
+    </div>
+    {% if o.customer_note %}
+    <div class="invoice-notes"><h3>یادداشت مشتری:</h3><p>{{ o.customer_note|e|replace('\n', '<br>'|safe) }}</p></div>
+    {% endif %}
+</div>
+<script>document.addEventListener('DOMContentLoaded', function() { setTimeout(function() { window.print(); }, 500); });</script>
+</body>
+</html>

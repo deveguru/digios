@@ -1,0 +1,6 @@
+{% extends "base.html" %}
+{% block title %}خطا | {{ site_name }}{% endblock %}
+{% block body %}
+<div class="wrap" style="max-width:620px;margin-top:40px"><div class="card center" style="padding:40px"><div style="color:var(--warn)">{{ ic('triangle-alert', '', 56) }}</div>
+<p>{{ message }}</p><a class="btn" href="/">صفحه اصلی</a></div></div>
+{% endblock %}

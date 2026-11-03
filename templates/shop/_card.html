@@ -1,0 +1,25 @@
+{% macro card(p) -%}
+<a class="pc" href="{{ p._url }}" data-pid="{{ p.id }}" draggable="false">
+  <div class="im"><img src="{{ p._img }}" alt="{{ p.name }}" loading="lazy" width="300" height="300" draggable="false"></div>
+  {% if p._discount %}<span class="off">٪{{ fa(p._discount) }}</span>{% endif %}
+  <div class="bd">
+    <h3>{{ p.name }}</h3>
+    <div class="pr">
+      {% if p._instock %}
+        <div>{% if p._on_sale %}<div class="old">{{ money(p._regular, False) }}</div>{% endif %}
+        <div class="price">{% if p.type == 'variable' and p._price_max > p._price %}<small>از </small>{% endif %}{{ money(p._price, False) }} <small>تومان</small></div></div>
+        <span class="add">{{ ic('shopping-bag') }}</span>
+      {% else %}<span class="badge">ناموجود</span>{% endif %}
+    </div>
+  </div>
+</a>
+{%- endmacro %}
+{% macro rail(title, items, link=None, icon='sparkles', style='slider') -%}
+<section class="sec" data-rail>
+  <div class="sec-h"><h2>{{ ic(icon) }}{{ title }}</h2>
+    <div class="tools">{% if link %}<a class="more" href="{{ link }}">مشاهده همه {{ ic('chevron-left') }}</a>{% endif %}
+    {% if style != 'grid' %}<button class="nav-b" data-prev aria-label="قبلی">{{ ic('chevron-right') }}</button><button class="nav-b" data-next aria-label="بعدی">{{ ic('chevron-left') }}</button>{% endif %}</div></div>
+  {% if style == 'grid' %}<div class="grid">{% for p in items %}{{ card(p) }}{% endfor %}</div>
+  {% else %}<div class="rail snap">{% for p in items %}{{ card(p) }}{% endfor %}</div>{% endif %}
+</section>
+{%- endmacro %}

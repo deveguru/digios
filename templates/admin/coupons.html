@@ -1,0 +1,13 @@
+{% extends "admin/base.html" %}{% from "admin/_m.html" import csrf_field with context %}
+{% block title %}کدهای تخفیف{% endblock %}{% block h1 %}کدهای تخفیف{% endblock %}
+{% block body %}
+<form class="card" method="post">{{ csrf_field() }}<h3>کد جدید</h3><div class="g4">
+<label class="f"><span>کد</span><input class="in mono" name="code" required></label><label class="f"><span>نوع</span><select class="in" name="type"><option value="percent">درصدی</option><option value="fixed_cart">مبلغ ثابت</option></select></label>
+<label class="f"><span>مقدار</span><input class="in" name="amount" required></label><label class="f"><span>حداکثر تخفیف</span><input class="in" name="max_amount"></label>
+<label class="f"><span>حداقل خرید</span><input class="in" name="min_amount"></label><label class="f"><span>تعداد مجاز استفاده</span><input class="in" name="usage_limit"></label>
+<label class="f"><span>انقضا</span><input class="in" data-jdate name="expires"></label><label class="f"><span>فقط برای محصولات (شناسه‌ها)</span><input class="in" name="product_ids"></label></div>
+<input type="hidden" name="enabled" value="1"><button class="btn">ایجاد</button></form>
+<div class="card tw"><table class="t"><thead><tr><th>کد</th><th>نوع</th><th>مقدار</th><th>استفاده</th><th>انقضا</th><th>وضعیت</th><th></th></tr></thead><tbody>
+{% for c in rows %}<tr><td class="mono">{{ c.code }}</td><td>{{ 'درصدی' if c.type == 'percent' else 'ثابت' }}</td><td>{{ fa(c.amount) }}</td><td>{{ fa(c.usage_count or 0) }}{% if c.usage_limit %} / {{ fa(c.usage_limit) }}{% endif %}</td><td>{{ jdate(c.expires) }}</td><td>{{ ic('check') if c.enabled else '—' }}</td>
+<td><form method="post">{{ csrf_field() }}<input type="hidden" name="id" value="{{ c.id }}"><button class="btn s red" name="action" value="delete" onclick="return confirm('حذف؟')">حذف</button></form></td></tr>{% endfor %}</tbody></table></div>
+{% endblock %}

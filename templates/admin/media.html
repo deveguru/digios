@@ -1,0 +1,32 @@
+{% extends "admin/base.html" %}{% from "admin/_m.html" import csrf_field, pager with context %}
+{% block title %}رسانه{% endblock %}{% block h1 %}رسانه، واترمارک و پاکسازی{% endblock %}
+{% block body %}
+<div class="tabs"><a href="?tab=library" class="{{ 'on' if tab == 'library' }}">کتابخانه</a>{% if F.watermark %}<a href="?tab=watermark" class="{{ 'on' if tab == 'watermark' }}">واترمارک (Easy Watermark Pro)</a>{% endif %}{% if F.image_cleaner %}<a href="?tab=cleaner" class="{{ 'on' if tab == 'cleaner' }}">تصاویر بلااستفاده (Unused Images Cleaner)</a>{% endif %}</div>
+{% if tab == 'library' %}
+<form class="card row" method="post" enctype="multipart/form-data" action="?tab=library">{{ csrf_field() }}<input type="hidden" name="action" value="upload"><input class="in grow" type="file" name="files" multiple>
+{% if F.watermark %}<label class="small"><input type="checkbox" name="watermark" value="1" {{ 'checked' if wm.enabled }}> واترمارک</label>{% endif %}<button class="btn">بارگذاری</button></form>
+<form class="card row"><input type="hidden" name="tab" value="library"><input class="in grow" name="q" value="{{ q }}" placeholder="جستجوی نام فایل"><button class="btn l">جستجو</button><span class="muted small">{{ fa(total) }} فایل</span></form>
+<form method="post" action="?tab=library">{{ csrf_field() }}<div class="mgrid">{% for m in rows %}<label title="{{ m.path }}"><input type="checkbox" name="ids" value="{{ m.id }}"><img src="{{ m._thumb }}" loading="lazy"><small>#{{ m.id }} {% if m.watermarked %}{{ ic('droplet') }}{% endif %} {{ m.title }}</small></label>{% endfor %}</div>
+{% if F.watermark %}<div class="row" style="margin-top:10px"><button class="btn l" name="action" value="wm_apply">{{ ic('droplet') }} واترمارک تصاویر انتخاب‌شده</button></div>{% endif %}</form>
+{{ pager(page, pages) }}
+{% elif tab == 'watermark' %}
+<form class="card" method="post" action="?tab=watermark">{{ csrf_field() }}<input type="hidden" name="action" value="wm_settings">
+<div class="g4"><label class="f"><span>واترمارک خودکار هنگام بارگذاری</span><select class="in" name="enabled"><option value="">خیر</option><option value="1" {{ 'selected' if wm.enabled }}>بله</option></select></label>
+<label class="f"><span>متن</span><input class="in" name="text" value="{{ wm.text }}"></label><label class="f"><span>اندازه فونت</span><input class="in" name="font_size" value="{{ wm.font_size }}"></label>
+<label class="f"><span>رنگ</span><input class="in" type="color" name="color" value="{{ wm.color }}"></label><label class="f"><span>شفافیت (٪)</span><input class="in" name="opacity" value="{{ wm.opacity }}"></label>
+<label class="f"><span>موقعیت</span><select class="in" name="position">{% for k, l in [('bottom-right','پایین راست'),('bottom-left','پایین چپ'),('top-right','بالا راست'),('top-left','بالا چپ'),('center','وسط'),('bottom-center','پایین وسط')] %}<option value="{{ k }}" {{ 'selected' if wm.position == k }}>{{ l }}</option>{% endfor %}</select></label>
+<label class="f"><span>فاصله افقی</span><input class="in" name="offset_x" value="{{ wm.offset_x }}"></label><label class="f"><span>فاصله عمودی</span><input class="in" name="offset_y" value="{{ wm.offset_y }}"></label></div>
+<p class="small muted">فونت: وزیرمتن Bold. نسخه اصلی هر تصویر قبل از واترمارک با پسوند ‎.orig‎ نگهداری می‌شود.</p><button class="btn">ذخیره</button></form>
+{% elif tab == 'cleaner' %}
+<div class="card"><div class="row sp"><h3>اسکن تصاویری که در هیچ محصول، دسته، برگه یا تنظیماتی استفاده نشده‌اند</h3>
+<form method="post" action="?tab=cleaner">{{ csrf_field() }}<input type="hidden" name="action" value="scan"><button class="btn">شروع اسکن</button></form></div>
+{% if scan %}<div data-job="{{ scan.id }}"></div>{% if scan.result %}<p>نتیجه آخرین اسکن ({{ jdt(scan.updated_at) }}): <b>{{ fa(scan.result.count) }}</b> تصویر، حجم {{ fa((scan.result.size / 1048576)|round(1)) }} مگابایت</p>
+<form method="post" action="?tab=cleaner">{{ csrf_field() }}<input type="hidden" name="action" value="delete_unused"><div class="tw" style="max-height:420px"><table class="t small"><thead><tr><th><input type="checkbox" data-checkall=".uc"></th><th>شناسه</th><th>مسیر</th><th>حجم</th></tr></thead><tbody>
+{% for it in scan.result['items'][:1000] %}<tr><td><input type="checkbox" class="uc" name="ids" value="{{ it.id }}"></td><td>{{ it.id }}</td><td class="mono"><a href="/wp-content/uploads/{{ it.path }}" target="_blank">{{ it.path }}</a></td><td>{{ fa((it.size / 1024)|round|int) }}KB</td></tr>{% endfor %}</tbody></table></div>
+<button class="btn red" style="margin-top:10px" onclick="return confirm('تصاویر انتخاب‌شده به سطل بازیافت منتقل شوند؟')">انتقال انتخاب‌شده‌ها به سطل بازیافت</button></form>{% endif %}{% endif %}</div>
+<form class="card" method="post" action="?tab=cleaner">{{ csrf_field() }}<input type="hidden" name="action" value="schedule"><h3>زمان‌بندی</h3><div class="g4">
+<label class="f"><span>اسکن هر … روز (خالی = غیرفعال)</span><input class="in" name="every" value="{{ ((sched.every_minutes // 1440) if sched else '') }}"></label>
+<label class="f"><span>حذف خودکار</span><select class="in" name="auto_delete"><option value="">خیر (فقط گزارش)</option><option value="1" {{ 'selected' if sched and (sched.params or {}).auto_delete }}>بله</option></select></label>
+<label class="f"><span>حداکثر حذف در هر بار</span><input class="in" name="max_delete" value="{{ (sched.params or {}).max_delete if sched else 200 }}"></label></div><button class="btn l">ذخیره زمان‌بندی</button></form>
+{% endif %}
+{% endblock %}

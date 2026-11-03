@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html dir="rtl">
+<head><meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>چاپ سفارشات ووکامرس</title>
+    <style>
+        @font-face { font-family: 'Lalezar'; font-weight: normal; font-style: normal; }
+        @font-face { font-family: 'Vazir'; font-weight: normal; font-style: normal; }
+        html, body { font-family: 'Vazir', Tahoma, Arial, sans-serif; direction: rtl; margin: 0; padding: 0; background-color: #fff; font-size: 10px; width: 100%; }
+        .slip-container { display: flex; flex-wrap: wrap; justify-content: space-between; padding: 0; box-sizing: border-box; width: 100%; max-width: 100%; margin: 0 auto; }
+        .order-slip { width: calc(100% - 2mm); margin-bottom: 0.5mm; box-sizing: border-box; border: 1px solid #333; border-radius: 6px; padding: 1mm; background: #fff; page-break-inside: avoid; overflow: hidden; position: relative; }
+        .slip-top-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.2mm; gap: 2mm; }
+        .shipping-method { flex: 1; border: 1px solid #333; border-radius: 3px; padding: 0.3mm; font-size: 12px; font-weight: 900; text-align: center; background-color: #f9f9f9; font-family: 'Lalezar', sans-serif; }
+        .barcode-inline { width: 30%; display: flex; flex-direction: column; align-items: center; justify-content: center; }
+        .barcode-inline img { width: 60%; height: 35px; display: block; }
+        .barcode-inline .barcode-number { font-size: 13px; font-weight: bold; text-align: center; margin-top: 0; line-height: 1; }
+        .order-body { display: flex; justify-content: space-between; margin-bottom: 0; position: relative; gap: 2mm; margin-top: 0.2mm; }
+        .receiver-info { width: 58%; position: relative; padding-right: 0; }
+        .sender-info-container { width: 40%; display: flex; flex-direction: column; }
+        .sender-info { margin-bottom: 0; }
+        .customer-note { margin-top: 0.3mm; padding: 0.5mm; background-color: #fffbcc; border: 1px solid #e6db55; border-radius: 3px; }
+        .info-title { font-weight: 900; margin-bottom: 0.2mm; border-bottom: 1px solid #eee; padding-bottom: 0.2mm; font-size: 12px; font-family: 'Lalezar', sans-serif; }
+        .info-content { line-height: 1.2; font-size: 11px; font-weight: normal; }
+        .receiver-phone { font-size: 15px; font-weight: 900; }
+        .address-line { display: block; white-space: normal; overflow: visible; text-overflow: clip; line-height: 1.2; font-weight: normal; word-wrap: break-word; word-break: break-word; }
+        .products-list { margin-top: 0.3mm; margin-bottom: 0; }
+        .products-title { font-weight: 900; margin-bottom: 0.2mm; font-size: 12px; font-family: 'Lalezar', sans-serif; }
+        .product-item { margin-bottom: 0.1mm; font-size: 10px; font-weight: normal; line-height: 1.2; }
+        .product-item .item-qty { font-size: 13px; font-weight: 900; }
+        .no-print { position: fixed; top: 10px; left: 10px; z-index: 1000; }
+        .print-button { background-color: #0073aa; color: white; border: none; padding: 10px 20px; font-size: 16px; cursor: pointer; border-radius: 4px; box-shadow: 0 2px 5px rgba(0,0,0,0.2); }
+        strong { font-weight: 700; }
+        @media print {
+            body { background-color: #fff; width: 100%; }
+            .no-print { display: none !important; }
+            .slip-container { padding: 0; width: 100%; }
+            .order-slip { page-break-inside: avoid; box-shadow: none; border: 1px solid #333; margin-bottom: 0.5mm; width: calc(100% - 2mm); }
+            @page { size: A4; margin: 6mm; }
+        }
+    </style>
+</head>
+<body>
+<div class="no-print"><button class="print-button" onclick="window.print();">چاپ</button></div>
+<div class="slip-container">
+    {% if slips %}
+        {% for s in slips %}
+        <div class="order-slip">
+            <div class="slip-top-row">
+                <div class="shipping-method"><strong>نوع ارسال:</strong> <strong>{{ s.shipping }}</strong></div>
+                <div class="barcode-inline">
+                    <img src="{{ s.barcode }}" alt="Barcode">
+                    <div class="barcode-number">{{ s.id }}</div>
+                </div>
+            </div>
+            <div class="order-body">
+                <div class="receiver-info">
+                    <div class="info-title">گیرنده:</div>
+                    <div class="info-content">
+                        <strong>{{ s.name }}</strong><br>
+                        تلفن: <span class="receiver-phone">{{ s.phone }}</span><br>
+                        کد پستی: <strong>{{ s.postcode }}</strong><br>
+                        <strong>آدرس:</strong> <span class="address-line"><strong>{{ s.address }}</strong></span>
+                    </div>
+                    <div class="products-list">
+                        <div class="products-title">محصولات: {{ s.count }}</div>
+                        {% for i in s['items'] %}
+                        <div class="product-item">- <span class="item-qty">{{ i.qty }}</span> × <strong>{{ i.name }}</strong> ({{ money(i.unit) }})</div>
+                        {% endfor %}
+                    </div>
+                    {% if s.note %}
+                    <div class="customer-note">
+                        <div class="info-title">یادداشت مشتری:</div>
+                        <div class="info-content">{{ s.note|e|replace('\n', '<br>'|safe) }}</div>
+                    </div>
+                    {% endif %}
+                </div>
+                <div class="sender-info-container">
+                    <div class="sender-info">
+                        <div class="info-title">فرستنده:</div>
+                        <div class="info-content">
+                            <strong>{{ sender.name }}</strong><br>
+                            تلفن: <strong>{{ sender.phone }}</strong><br>
+                            <strong>آدرس:</strong> <strong>{{ sender.address }}</strong>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    {% else %}
+        <p>هیچ سفارشی برای چاپ انتخاب نشده است.</p>
+    {% endif %}
+</div>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    document.title = "چاپ سفارشات";
+    setTimeout(function() { window.print(); }, 1000);
+});
+</script>
+</body>
+</html>

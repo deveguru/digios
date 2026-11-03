@@ -1,0 +1,16 @@
+{% extends "admin/base.html" %}{% from "admin/_m.html" import csrf_field, sw with context %}
+{% block title %}هوش مصنوعی لمورا{% endblock %}{% block h1 %}هوش مصنوعی لمورا{% endblock %}
+{% block actions %}<a class="btn l" href="https://lemura.ir/docs" target="_blank" rel="noopener">{{ ic('book-open') }} مستندات</a>{% endblock %}
+{% block body %}
+<div class="alert info">{{ ic('info') }}<span>کلید API اختصاصی این سایت را از <b>lemura.ir ← توسعه‌دهندگان</b> بسازید (با پیشوند lsk-). این کلید برای تولید محتوا، تصویر شاخص، دستیار پاسخگو و گزارش هوشمند همین سایت استفاده می‌شود و هزینه از کیف پول لمورا کسر می‌شود.</span></div>
+<form class="card" method="post">{{ csrf_field() }}<h3>{{ ic('key-round') }} اتصال</h3>
+<div class="g3"><div class="feat"><span>فعال</span>{{ sw('enabled', c.enabled) }}</div>
+<label class="f"><span>کلید API {{ '(تنظیم شده — برای تغییر وارد کنید)' if has_key }}</span><input class="in mono" name="api_key" autocomplete="off" placeholder="lsk-..."></label>
+<label class="f"><span>آدرس وب‌سرویس</span><input class="in mono" name="base_url" value="{{ c.base_url }}"></label>
+<label class="f"><span>مدل متن</span><input class="in mono" name="text_model" value="{{ c.text_model }}" list="mlist"></label>
+<label class="f"><span>مدل تصویر</span><input class="in mono" name="image_model" value="{{ c.image_model }}" list="mlist"></label>
+<label class="f"><span>ابعاد تصویر شاخص</span><select class="in" name="image_size">{% for z in ['1792x1024','1024x1024','1024x1792','1536x1024'] %}<option {{ 'selected' if c.image_size == z }}>{{ z }}</option>{% endfor %}</select></label>
+<label class="f" style="grid-column:1/-1"><span>لحن پیش‌فرض نوشتن</span><input class="in" name="tone" value="{{ c.tone }}"></label></div>
+<datalist id="mlist">{% for m in models %}<option value="{{ m }}">{% endfor %}</datalist>
+<div class="row"><button class="btn">{{ ic('save') }} ذخیره</button><button class="btn l" name="action" value="test">{{ ic('plug-zap') }} تست اتصال و موجودی</button><a class="btn l" href="?models=1">{{ ic('list') }} دریافت فهرست مدل‌ها</a></div></form>
+{% endblock %}

@@ -1,0 +1,30 @@
+{% extends "admin/base.html" %}{% from "admin/_m.html" import csrf_field with context %}
+{% block title %}داشبورد مادر{% endblock %}{% block h1 %}{{ ic('network') }} داشبورد مادر — مدیریت شبکه سایت‌ها{% endblock %}
+{% block actions %}<a class="btn" href="/mother/perf">{{ ic('activity') }} گزارش عملکرد و سلامت</a><a class="btn l" href="/mother/access">{{ ic('shield-check') }} دسترسی‌های شبکه</a><a class="btn l" href="/mother/bulk">{{ ic('arrow-down-up') }} ویرایش/انتقال گروهی</a>{% endblock %}
+{% block body %}
+<div class="kpis"><div class="kpi"><span>{{ ic('network') }} سایت‌های متصل</span><b>{{ fa(sites|length) }}</b></div><div class="kpi"><span>محصولات سایت اصلی</span><b>{{ fa(main.products) }}</b></div>
+<div class="kpi"><span>سفارش‌های سایت اصلی</span><b>{{ fa(main.orders) }}</b></div><div class="kpi"><span>کاربران سایت اصلی</span><b>{{ fa(main.users) }}</b></div></div>
+<div class="card tw"><h3>سایت‌ها</h3><table class="t"><thead><tr><th>سایت</th><th>وضعیت</th><th>محصول</th><th>سفارش</th><th>فروش امروز</th><th>آخرین اتصال</th><th></th></tr></thead><tbody>
+<tr><td><b>{{ site_name }}</b> <span class="badge">سایت اصلی (مادر)</span></td><td>{{ tag('active') }}</td><td>{{ fa(main.products) }}</td><td>{{ fa(main.orders) }}</td><td>—</td><td>—</td><td><a class="btn s l" href="/admin/">{{ ic('layout-dashboard') }} مدیریت</a> <a class="btn s l" href="/admin/palette">{{ ic('palette') }}</a> <a class="btn s l" href="/admin/backups">{{ ic('database-backup') }}</a></td></tr>
+{% for s in sites %}{% set stt = s.stats or {} %}<tr><td><a href="/mother/sites/{{ s.id }}"><b>{{ s.name }}</b></a><div class="mono small muted">{{ s.domain }}</div></td>
+<td>{{ tag(s.status, {'new':'جدید','installing':'در حال نصب','active':'فعال','error':'خطا','disabled':'غیرفعال'}.get(s.status, s.status), color={'installing':'#f59e0b','error':'#dc2626'}.get(s.status)) }}</td>
+<td>{{ fa(stt.products or 0) }}</td><td>{{ fa(stt.orders or 0) }}</td><td>{{ money(stt.sales_today or 0) }}</td><td class="small">{{ jdt(s.last_seen) }}</td>
+<td><a class="btn s l" href="/mother/sites/{{ s.id }}">جزئیات</a>{% if s.status == 'active' %} <a class="btn s" href="/mother/sites/{{ s.id }}/sso" target="_blank">ورود به مدیریت</a>{% endif %}</td></tr>{% endfor %}</tbody></table></div>
+<div class="g2">
+<form class="card" method="post" action="/mother/sites">{{ csrf_field() }}<h3>افزودن سایت جدید (نصب خودکار روی هاست cPanel)</h3>
+<div class="g2"><label class="f"><span>نام سایت</span><input class="in" name="name"></label><label class="f"><span>دامنه</span><input class="in mono" name="domain" placeholder="example.ir" required></label>
+<label class="f"><span>نام کاربری cPanel</span><input class="in mono" name="cpanel_user" required></label><label class="f"><span>آدرس cPanel (اختیاری)</span><input class="in mono" name="cpanel_host" placeholder="example.ir:2083"></label></div>
+<label class="f"><span>توکن API cPanel</span><input class="in mono" name="token" required autocomplete="off"></label>
+<label class="small" style="display:block"><input type="checkbox" name="clone" value="1" checked> پس از نصب، اطلاعات این سایت کپی شود:</label>
+<div class="row small" style="margin:6px 0 10px">{% for k, l in [('settings','تنظیمات و ظاهر'),('terms','دسته‌بندی‌ها'),('products','محصولات + تصاویر'),('users','کاربران'),('orders','سفارشات')] %}<label><input type="checkbox" name="c_{{ k }}" value="1" {{ 'checked' if k in ('settings','terms','products') }}> {{ l }}</label>{% endfor %}</div>
+<details><summary class="small">قابلیت‌های سایت جدید (پیش‌فرض: مثل سایت اصلی)</summary><input type="hidden" name="custom_features" value="1">
+{% for k, v in feats.items() %}<div class="feat small"><span>{{ v[0] }}</span><label class="switch"><input type="checkbox" name="f_{{ k }}" value="1" {{ 'checked' if main_features[k] }}><i></i></label></div>{% endfor %}</details>
+<button class="btn" style="margin-top:12px">افزودن و نصب خودکار</button>
+<p class="small muted">توکن به صورت رمزنگاری‌شده ذخیره می‌شود. نصب شامل ساخت پایگاه داده، بارگذاری کد، محیط پایتون، کرون و اتصال وب‌سرور است.</p></form>
+<div class="card"><h3>قابلیت‌های سایت اصلی و همه سایت‌ها</h3><p class="small muted">کلید هر قابلیت را بزنید تا همان لحظه روی همه سایت‌های فعال (و سایت اصلی) اعمال شود. برای تنظیم جداگانه هر سایت، وارد صفحه آن سایت شوید.</p>
+{% for k, v in feats.items() %}<div class="feat small"><span>{{ v[0] }} <span class="muted">— {{ v[3] }}</span></span><label class="switch"><input type="checkbox" data-feat="{{ k }}" {{ 'checked' if main_features[k] }}><i></i></label></div>{% endfor %}</div>
+</div>
+<div class="card"><h3>آخرین کارهای شبکه</h3><table class="t small">{% for t in tasks %}<tr><td>#{{ t.id }}</td><td>{{ t.kind }}</td><td>سایت {{ t.site_id }}</td><td>{{ tag(t.status) }}</td><td>{{ jdt(t.updated_at) }}</td></tr>{% endfor %}</table></div>
+{% endblock %}
+{% block scripts %}<script>document.querySelectorAll('[data-feat]').forEach(c=>c.addEventListener('change',async()=>{const r=await post('/mother/features/all',{key:c.dataset.feat,on:c.checked?1:0,include_main:1});
+const bad=Object.entries(r.result||{}).filter(([k,v])=>!v).map(([k])=>k);c.closest('.feat').style.background=bad.length?'#fef2f2':'#f0fdf4';if(bad.length)alert('اعمال نشد روی: '+bad.join('، '))}));</script>{% endblock %}

@@ -1,0 +1,65 @@
+{% extends "base.html" %}
+{% from "shop/_card.html" import card, rail with context %}
+{% block title %}{{ p.name }} | {{ site_name }}{% endblock %}
+{% block desc %}{{ (p.short_description or p.description or '')|striptags|truncate(160) }}{% endblock %}
+{% block head %}
+<meta property="og:title" content="{{ p.name }}"><meta property="og:image" content="{{ images[0].large }}"><meta property="og:type" content="product">
+<script type="application/ld+json">{{ {"@context":"https://schema.org","@type":"Product","name":p.name,"image":[images[0].full],"sku":p.sku or '',
+"offers":{"@type":"Offer","priceCurrency":"IRR","price":price_lo * 10,"availability":"https://schema.org/" ~ ("InStock" if p.stock_status != 'outofstock' else "OutOfStock")}}|tojson }}</script>
+<style>#pp{--pp1:{{ style.primary }};--pp2:{{ style.secondary }};--ppbt:{{ style.button_text }};--pprad:{{ style.radius }}px}</style>
+{% endblock %}
+{% block body %}
+<div class="wrap" id="pp">
+  <div class="crumbs"><a href="/">خانه</a>{% for c in cats[:2] %} / <a href="/product-category/{{ url_slug(c.slug) }}/">{{ c.name }}</a>{% endfor %}</div>
+  <div class="pp">
+    <div class="gal">
+      <div class="main"><img src="{{ images[0].large }}" data-full="{{ images[0].full }}" alt="{{ images[0].alt }}"></div>
+      {% if images|length > 1 %}<div class="th">{% for im in images %}<button type="button" class="{{ 'on' if loop.first }}" data-large="{{ im.large }}"><img src="{{ im.thumb }}" alt="" loading="lazy"></button>{% endfor %}</div>{% endif %}
+    </div>
+    <div class="pi">
+      <h1>{{ p.name }}</h1>
+      <div class="meta">{% if p.sku %}<span>کد محصول: {{ p.sku }}</span>{% endif %}{% for b in brands %}<span>برند: {{ b.name }}</span>{% endfor %}
+        {% if p.review_count %}<span class="stars">{% for i in range((p.rating or 0)|round|int) %}{{ ic('star') }}{% endfor %}</span>{% endif %}</div>
+      {% if short_html %}<div class="content small" style="margin-top:10px">{{ short_html }}</div>{% endif %}
+      <form class="buybox" method="post" action="/cart/add" data-ajax-cart>
+        <input type="hidden" name="_csrf" value="{{ csrf }}"><input type="hidden" name="product_id" value="{{ p.id }}">
+        <input type="hidden" name="variation_id" value=""><input type="hidden" name="back" value="{{ request.path }}">
+        <div class="big" id="pprice">
+          {% if p.type == 'variable' %}{% if price_hi > price_lo %}{{ money(price_lo) }} تا {{ money(price_hi) }}{% else %}{{ money(price_lo) }}{% endif %}
+          {% else %}{% if on_sale %}<span class="old">{{ money(regular) }}</span> {% endif %}{{ money(price_lo) }}{% endif %}
+        </div>
+        {% for a in attrs %}<div class="opt" data-k="{{ a.key }}"><b>{{ a.label }}</b><div class="vals">
+          {% for o in a.options %}<button type="button" data-v="{{ o.slug }}">{{ o.name }}</button>{% endfor %}</div></div>{% endfor %}
+        <p class="small muted" id="pstock">{% if p.stock_status == 'outofstock' %}ناموجود{% elif p.manage_stock and p.stock_qty is not none and p.type != 'variable' %}موجودی: {{ fa(p.stock_qty) }} عدد{% elif p.type == 'variable' %}گزینه‌ها را انتخاب کنید{% else %}موجود در انبار{% endif %}</p>
+        <div class="row">
+          {% if not p.sold_individually %}<div class="qty"><button type="button" data-d="1">{{ ic('plus') }}</button><input name="qty" value="1" inputmode="numeric"><button type="button" data-d="-1">{{ ic('minus') }}</button></div>{% endif %}
+          <button class="btn buy grow" type="submit" {{ 'disabled' if p.stock_status == 'outofstock' or p.type == 'variable' }}>{{ ic('shopping-bag') }} افزودن به سبد خرید</button>
+        </div>
+      </form>
+      {% if quick %}{{ rail('خرید سریع همراه', quick, None, 'zap') }}{% endif %}
+    </div>
+  </div>
+
+  <div class="tabs">
+    <button class="on" data-t="t-desc">{{ ic('file-text') }}توضیحات</button>
+    {% if specs %}<button data-t="t-spec">{{ ic('list') }}مشخصات</button>{% endif %}
+    {% if videos %}<button data-t="t-vid">{{ ic('video') }}{{ videos_title }}</button>{% endif %}
+    <button data-t="t-rev">{{ ic('message-square') }}دیدگاه‌ها ({{ fa(reviews|length) }})</button>
+  </div>
+  <div class="tabc content" id="t-desc">{{ desc_html or 'توضیحاتی ثبت نشده است.' }}</div>
+  {% if specs %}<div class="tabc hide" id="t-spec"><table class="specs">{% for k, v in specs %}<tr><td>{{ k }}</td><td>{{ v }}</td></tr>{% endfor %}</table></div>{% endif %}
+  {% if videos %}<div class="tabc hide" id="t-vid"><div class="videos">{% for v in videos %}{% if v.embed %}<iframe src="{{ v.embed }}" allowfullscreen loading="lazy"></iframe>{% else %}<video src="{{ v.file }}" controls preload="none"></video>{% endif %}{% endfor %}</div></div>{% endif %}
+  <div class="tabc hide" id="t-rev">
+    {% for r in reviews %}<div class="review"><b>{{ r.author }}</b> <span class="muted small">{{ jdate(r.created) }}</span>{% if r.rating %} <span class="stars">{% for i in range(r.rating) %}{{ ic('star') }}{% endfor %}</span>{% endif %}<div>{{ r.content }}</div></div>
+    {% else %}<p class="muted">هنوز دیدگاهی ثبت نشده است.</p>{% endfor %}
+  </div>
+
+  {% if global_related %}{{ rail(global_title or 'همراه خریدتان', global_related, None, 'heart-handshake') }}{% endif %}
+  {% if related %}{{ rail(related_title, related, None, 'layers') }}{% endif %}
+</div>
+<script type="application/json" id="vars">{{ variations|tojson }}</script>
+{% if F.sticky_suite and (S('guru_sticky_options') or {}).get('product_bar_enabled') not in ('0', 0) and p.stock_status != 'outofstock' %}
+<div class="pbar"><img src="{{ images[0].thumb }}" alt=""><div class="grow"><b class="small">{{ p.name|truncate(46) }}</b><div class="price">{{ money(price_lo) }}</div></div>
+<button class="btn" onclick="document.querySelector('.buybox').scrollIntoView({behavior:'smooth',block:'center'})">{{ ic('shopping-bag') }} خرید</button></div>
+{% endif %}
+{% endblock %}

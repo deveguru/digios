@@ -1,0 +1,81 @@
+{% extends "admin/base.html" %}{% from "admin/_m.html" import csrf_field, pager with context %}
+{% block title %}رهگیری مرسوله{% endblock %}
+{% block h1 %}رهگیری مرسوله (Guru Tracker){% endblock %}
+
+{% block body %}
+<div class="card" id="gtbox"><h3>{{ ic('package-search') }} ثبت رهگیری و بارنامه سفارش</h3>
+  <input class="in" id="gtq" style="width:100%" placeholder="شماره سفارش، موبایل یا نام مشتری را بنویسید…" autocomplete="off">
+  <div id="gtres" class="gtres"></div>
+</div>
+<div class="g2">
+<form class="card" method="post" enctype="multipart/form-data">{{ csrf_field() }}<input type="hidden" name="action" value="preview"><h3>ورود گروهی کدها از فایل پست/ماهکس/باکسیت</h3>
+  <div class="g2"><label class="f"><span>شرکت حمل</span><select class="in" name="carrier">{% for k, c in carriers.items() %}<option value="{{ k }}">{{ c.name }}</option>{% endfor %}</select></label>
+  <label class="f"><span>بررسی در آخرین … سفارش</span><input class="in" name="orders_limit" value="600"></label></div>
+  <label class="f"><span>فایل Excel یا CSV</span><input class="in" type="file" name="file" accept=".xlsx,.xls,.csv" required></label>
+  <button class="btn">پیش‌نمایش و تطبیق با سفارش‌ها</button></form>
+<form class="card" method="post">{{ csrf_field() }}<input type="hidden" name="action" value="manual"><h3>ثبت دستی</h3>
+  <div class="g2"><label class="f"><span>شماره سفارش</span><input class="in" name="order_id" required></label>
+  <label class="f"><span>شرکت حمل</span><select class="in" name="type">{% for k, c in carriers.items() %}<option value="{{ k }}">{{ c.name }}</option>{% endfor %}</select></label></div>
+  <label class="f"><span>کد رهگیری</span><input class="in mono" style="width:100%" name="code" required></label>
+  <p class="small muted">برای بارگذاری تصویر بارنامه، سفارش را در کادر بالا جستجو کنید.</p>
+  <label class="f"><span>تغییر وضعیت سفارش به</span><select class="in" name="set_status"><option value="">بدون تغییر</option>{% for s in statuses %}<option value="{{ s.slug }}">{{ s.label }}</option>{% endfor %}</select></label>
+  <button class="btn">ثبت</button></form>
+</div>
+{% if preview %}<div class="card">{% if preview.error %}<div class="alert error">{{ preview.error }}</div>{% else %}
+  <h3>نتیجه تطبیق: {{ fa(preview.stats.exact) }} دقیق، {{ fa(preview.stats.fuzzy) }} تقریبی، {{ fa(preview.stats.none) }} بدون سفارش</h3>
+  <form method="post">{{ csrf_field() }}<input type="hidden" name="action" value="confirm"><input type="hidden" name="data" id="tdata">
+  <div class="tw"><table class="t small"><thead><tr><th>نام در فایل</th><th>کد</th><th>سفارش</th></tr></thead><tbody>
+  {% for r in preview.rows %}<tr><td>{{ r.name }}</td><td class="mono">{{ r.code }}</td><td>{% if r.matches %}<select class="in tsel" data-code="{{ r.code }}" data-type="{{ r.type }}"><option value="">— رد شود —</option>
+    {% for m in r.matches %}<option value="{{ m.id }}" {{ 'selected' if loop.first and r.kind == 'exact' }}>#{{ m.id }} {{ m.name }} ({{ tag(m.status) }}، {{ m.date }})</option>{% endfor %}</select>{% else %}<span class="bad">سفارشی یافت نشد</span>{% endif %}</td></tr>{% endfor %}</tbody></table></div>
+  <div class="row" style="margin-top:10px"><select class="in" name="set_status" style="width:auto"><option value="">وضعیت سفارش تغییر نکند</option>{% for s in statuses %}<option value="{{ s.slug }}">تغییر به «{{ s.label }}»</option>{% endfor %}</select>
+  <button class="btn green" onclick="document.getElementById('tdata').value=JSON.stringify([...document.querySelectorAll('.tsel')].filter(s=>s.value).map(s=>({order_id:s.value,code:s.dataset.code,type:s.dataset.type})))">ثبت کدهای انتخاب‌شده</button></div></form>{% endif %}</div>{% endif %}
+<div class="card"><h3>ثبت‌شده‌ها ({{ fa(total) }})</h3><div class="tw"><table class="t small rsp"><thead><tr><th data-sort="order">سفارش</th><th data-sort="customer">مشتری</th><th data-sort="code">کد</th><th data-sort="type">شرکت</th><th>بارنامه</th><th data-sort="updated">بروزرسانی</th><th>لینک عمومی</th></tr></thead><tbody>
+{% for r in rows %}<tr><td><a href="/admin/orders/{{ r.order_id }}">#{{ fa(r.order_id) }}</a></td><td>{{ r.customer_name or '' }}</td><td class="mono">{{ r.tracking_code or '' }}</td><td>{{ carriers.get(r.tracking_type, {}).get('name', r.tracking_type) }}</td>
+<td class="wbcell" data-oid="{{ r.order_id }}">{% if r.waybill_image_url %}<a href="{{ r.waybill_image_url }}" target="_blank"><img class="wbthumb" src="{{ r.waybill_image_url }}" alt="بارنامه" loading="lazy"></a>{% endif %}
+  <label class="btn s l" title="{{ 'تعویض تصویر بارنامه' if r.waybill_image_url else 'بارگذاری تصویر بارنامه' }}">{{ ic('image-up') }}<input type="file" accept="image/*" hidden data-wbquick="{{ r.order_id }}"></label></td>
+<td>{{ jdt(r.updated_at) }}</td>
+<td>{% if r.tracking_token %}<a href="/gt-track/{{ r.tracking_token }}/" target="_blank">{{ ic('link') }}</a>{% endif %}</td></tr>{% endfor %}</tbody></table></div>{{ pager(page, pages) }}</div>
+<form class="card" method="post">{{ csrf_field() }}<input type="hidden" name="action" value="settings"><h3>تنظیمات</h3>
+<div class="g4"><label class="f"><span>تاخیر نمایش کد (ساعت)</span><input class="in" name="tracking_delay_hours" value="{{ cfg.tracking_delay_hours }}"></label>
+<label class="f"><span>رنگ اصلی</span><input class="in" type="color" name="primary_color" value="{{ cfg.primary_color }}"></label>
+<label class="f"><span>پاکسازی خودکار تصاویر بارنامه</span><select class="in" name="auto_cleanup_enabled"><option value="1">فعال</option><option value="" {{ 'selected' if not (cfg.auto_cleanup_enabled or 0)|int }}>غیرفعال</option></select></label>
+<label class="f"><span>بعد از (روز)</span><input class="in" name="auto_cleanup_days" value="{{ cfg.auto_cleanup_days }}"></label></div>
+<label class="f"><span>پیام صفحه رهگیری</span><textarea class="in" name="terminal_notice" rows="2">{{ cfg.terminal_notice or '' }}</textarea></label><button class="btn l">ذخیره</button></form>
+{% endblock %}
+{% block scripts %}<style>
+.gtres{display:grid;gap:12px;margin-top:12px}.gto{border:1px solid var(--line);border-radius:16px;padding:12px 14px;background:var(--card-2)}
+.gto .hd{display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:10px}.gto .hd b{font-size:1.02em}
+.gto .grid{display:grid;grid-template-columns:150px 1fr 260px;gap:10px;align-items:start}@media(max-width:900px){.gto .grid{grid-template-columns:1fr}}
+.wb{display:flex;gap:8px;align-items:center;flex-wrap:wrap}.wb img{width:84px;height:84px;object-fit:cover;border-radius:12px;border:1px solid var(--line);background:var(--card)}
+.wb .ph{width:84px;height:84px;border-radius:12px;border:2px dashed var(--line);display:grid;place-items:center;color:var(--ink-2)}
+.wbthumb{width:44px;height:44px;object-fit:cover;border-radius:8px;border:1px solid var(--line);vertical-align:middle}.wbcell{white-space:nowrap}
+.gto .lnk{font-size:.78em;margin-top:8px;word-break:break-all}
+</style><script>
+(function(){
+const CAR={{ carriers|tojson }},STS={{ statuses|map(attribute='slug')|list|tojson }},STL={{ statuses|map(attribute='label')|list|tojson }};
+const box=document.getElementById('gtres'),q=document.getElementById('gtq');let t,seq=0,cur=[];
+const esc=s=>String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+function wbHtml(o){return o.waybill?`<a href="${esc(o.waybill)}" target="_blank"><img src="${esc(o.waybill)}" alt="بارنامه"></a>`:`<span class="ph">${ICON('image')}</span>`}
+function render(){box.innerHTML=cur.length?cur.map((o,i)=>`<div class="gto" data-i="${i}"><div class="hd"><b>${ICON('package')} #${fa(o.id)} — ${esc(o.name)}</b>
+ <span class="row" style="gap:6px">${o.phone?`<span class="mono small">${esc(o.phone)}</span>`:''}${OSTAG(o.status,o.status_label)}<span class="small muted">${esc(o.date)}</span></span></div>
+ <div class="grid"><label class="f"><span>شرکت حمل</span><select class="in" data-k="type"><option value="">انتخاب…</option>${Object.entries(CAR).map(([k,c])=>`<option value="${k}" ${k===o.type?'selected':''}>${esc(c.name)}</option>`).join('')}</select></label>
+ <label class="f"><span>کد رهگیری</span><input class="in mono" data-k="code" value="${esc(o.code)}" placeholder="اختیاری"></label>
+ <div class="f"><span>تصویر بارنامه</span><div class="wb" id="wb${i}">${wbHtml(o)}<label class="btn s">${ICON('image-up')} ${o.waybill?'تعویض':'انتخاب تصویر'}<input type="file" accept="image/*" hidden data-up="${i}"></label>
+ ${o.waybill?`<button type="button" class="btn s red" data-rm="${i}">${ICON('trash-2')}</button>`:''}</div></div></div>
+ <div class="row" style="gap:8px;margin-top:8px"><select class="in" data-k="set_status" style="width:auto"><option value="">وضعیت سفارش تغییر نکند</option>${STS.map((s,j)=>`<option value="${s}">تغییر به «${esc(STL[j])}»</option>`).join('')}</select></div>
+ ${o.link?`<div class="lnk">${ICON('link')} لینک عمومی رهگیری: <a href="${esc(o.link)}" target="_blank" dir="ltr">${esc(o.link)}</a></div>`:''}</div>`).join('')+
+ `<button class="btn" id="gtsave" style="width:100%">${ICON('save')} ذخیره همه</button>`:(q.value.trim()?'<p class="muted">سفارشی یافت نشد.</p>':'')}
+async function find(){const v=q.value.trim(),my=++seq;if(!v){cur=[];render();return}const r=await fetch('/admin/tracking/find?q='+encodeURIComponent(v)).then(r=>r.json()).catch(()=>[]);if(my!==seq)return;cur=r;render()}
+q.addEventListener('input',()=>{clearTimeout(t);t=setTimeout(find,300)});
+box.addEventListener('change',async e=>{const up=e.target.closest('[data-up]');if(!up||!up.files[0])return;const i=+up.dataset.up,o=cur[i];const fd=new FormData();fd.append('order_id',o.id);fd.append('file',up.files[0]);
+ document.getElementById('wb'+i).style.opacity=.5;const r=await post('/admin/tracking/waybill',fd);document.getElementById('wb'+i).style.opacity=1;
+ if(r.ok){o.waybill=r.url;if(r.link)o.link=r.link;sync();render()}else alert(r.message||'بارگذاری نشد')});
+function sync(){box.querySelectorAll('.gto').forEach(el=>{const o=cur[+el.dataset.i];el.querySelectorAll('[data-k]').forEach(x=>o['_'+x.dataset.k]=x.value)})}
+box.addEventListener('click',async e=>{const rm=e.target.closest('[data-rm]');if(rm){if(!confirm('تصویر بارنامه حذف شود؟'))return;const o=cur[+rm.dataset.rm];sync();
+  const r=await post('/admin/tracking/waybill',{order_id:o.id,remove:1});if(r.ok){o.waybill='';render()}return}
+ if(e.target.closest('#gtsave')){sync();const data=cur.map(o=>({order_id:o.id,code:o._code??o.code,type:o._type??o.type,set_status:o._set_status||''}));
+  const r=await fetch('/admin/tracking/save-all',{method:'POST',headers:{'Content-Type':'application/json','X-CSRF':CSRF},body:JSON.stringify(data)}).then(r=>r.json());
+  alert(r.message||'ذخیره شد');find()}});
+document.addEventListener('change',async e=>{const w=e.target.closest('[data-wbquick]');if(!w||!w.files[0])return;const fd=new FormData();fd.append('order_id',w.dataset.wbquick);fd.append('file',w.files[0]);
+ const r=await post('/admin/tracking/waybill',fd);if(r.ok)location.reload();else alert(r.message||'بارگذاری نشد')});
+})();</script>{% endblock %}

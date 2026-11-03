@@ -1,0 +1,26 @@
+{% extends "admin/base.html" %}{% from "admin/_m.html" import csrf_field, joblist with context %}
+{% block title %}دسته‌بندی‌ها{% endblock %}{% block h1 %}دسته‌بندی‌ها و برچسب‌ها{% endblock %}
+{% block body %}
+<div class="tabs">{% for k, l in taxes %}<a href="?tax={{ k }}" class="{{ 'on' if tax == k }}">{{ l }}</a>{% endfor %}</div>
+<div class="g2" style="grid-template-columns:1fr 2fr">
+<form class="card" method="post" enctype="multipart/form-data" id="tf">{{ csrf_field() }}<input type="hidden" name="action" value="save"><input type="hidden" name="id" id="tid"><h3 id="tft">افزودن</h3>
+<label class="f"><span>نام</span><input class="in" name="name" id="tname" required></label><label class="f"><span>نامک</span><input class="in" name="slug" id="tslug"></label>
+<label class="f"><span>والد</span><select class="in" name="parent" id="tparent"><option value="0">— بدون والد —</option>{% for t in terms %}<option value="{{ t.id }}">{{ t.name }}</option>{% endfor %}</select></label>
+<label class="f"><span>ترتیب</span><input class="in" name="sort" id="tsort" value="0"></label><label class="f"><span>توضیحات</span><textarea class="in" name="description" id="tdesc" rows="3"></textarea></label>
+<label class="f"><span>تصویر</span><input class="in" type="file" name="image" accept="image/*"></label><button class="btn">ذخیره</button></form>
+<div class="card tw"><table class="t small"><thead><tr><th></th><th>نام</th><th>والد</th><th>تعداد</th><th></th></tr></thead><tbody>
+{% set byid = {} %}{% for t in terms %}{% set _ = byid.update({t.id: t.name}) %}{% endfor %}
+{% for t in terms %}<tr><td>{% if t.image_id %}<img class="thumb" src="{{ media_url(t.image_id, 'thumbnail') }}">{% endif %}</td><td><b>{{ t.name }}</b><div class="muted mono">{{ t.slug|urldecode|truncate(40) }}</div></td>
+<td>{{ byid.get(t.parent, '') }}</td><td>{{ fa(t.count) }}</td><td><button class="btn s l" type="button" onclick='edit({{ t|tojson }})'>ویرایش</button>
+<form method="post" style="display:inline">{{ csrf_field() }}<input type="hidden" name="action" value="delete"><input type="hidden" name="id" value="{{ t.id }}"><button class="btn s red" onclick="return confirm('حذف شود؟')">حذف</button></form></td></tr>{% endfor %}</tbody></table></div>
+</div>
+{% if F.category_manager and tax == 'product_cat' %}
+<div class="card"><div class="row sp"><h3>دسته‌بندی هوشمند (Category Manager Pro) — {{ fa(nsugg) }} پیشنهاد</h3>
+<form method="post">{{ csrf_field() }}<input type="hidden" name="action" value="analyze"><button class="btn l">تحلیل محصولات</button></form></div>
+{% if progress %}<p class="small muted">{{ progress.message }}</p>{% endif %}{{ joblist(jobs[:1]) }}
+{% if sugg %}<form method="post">{{ csrf_field() }}<input type="hidden" name="action" value="apply"><div class="tw" style="max-height:480px"><table class="t small"><thead><tr><th><input type="checkbox" data-checkall=".sc"></th><th>محصول</th><th>دسته فعلی</th><th>پیشنهاد</th></tr></thead><tbody>
+{% for pid, r in sugg %}<tr><td><input type="checkbox" class="sc" name="pids" value="{{ pid }}"></td><td><a href="/admin/products/{{ pid }}">{{ r.title }}</a></td><td>{% for c in r.current_cats %}{{ names.get(c, '') }}{{ '، ' if not loop.last }}{% endfor %}</td><td><b>{% for c in r.suggested_cats %}{{ names.get(c, '') }}{{ '، ' if not loop.last }}{% endfor %}</b></td></tr>{% endfor %}</tbody></table></div>
+<div class="row" style="margin-top:10px"><label class="small"><input type="checkbox" name="replace" value="1"> جایگزینی دسته‌های قبلی</label><button class="btn">اعمال پیشنهادهای انتخاب‌شده (یا همه)</button></div></form>{% endif %}</div>
+{% endif %}
+{% endblock %}
+{% block scripts %}<script>function edit(t){tid.value=t.id;tname.value=t.name;tslug.value=decodeURIComponent(t.slug);tparent.value=t.parent;tsort.value=t.sort||0;tdesc.value=t.description||'';tft.textContent='ویرایش: '+t.name;tf.scrollIntoView({behavior:'smooth'})}</script>{% endblock %}

@@ -1,0 +1,15 @@
+{% extends "admin/base.html" %}{% from "admin/_m.html" import csrf_field with context %}
+{% block title %}ظاهر سایت{% endblock %}{% block h1 %}ظاهر سایت{% endblock %}
+{% block body %}
+<div class="tabs">{% for k, l in tabs %}<a href="?tab={{ k }}" class="{{ 'on' if tab == k }}">{{ l }}</a>{% endfor %}<a href="/admin/palette">{{ ic('palette') }} رنگ‌بندی و مگامنو</a><a href="/admin/homepage">{{ ic('layout-template') }} صفحه اصلی</a></div>
+<form class="card" method="post">{{ csrf_field() }}<h3>{{ title }}</h3>
+<div class="g3">{% for k, label, t in fields %}{% set v = vals.get(k) %}
+{% if t == 'textarea' %}<label class="f" style="grid-column:1/-1"><span>{{ label }}</span><textarea class="in" name="{{ k }}" rows="3">{{ v or '' }}</textarea></label>
+{% elif t == 'check' %}<label class="f"><span>{{ label }}</span><select class="in" name="{{ k }}"><option value="">خیر</option><option value="1" {{ 'selected' if v in ('1', 1, True) }}>بله</option></select></label>
+{% elif t == 'ids' %}<label class="f"><span>{{ label }}</span><input class="in" name="{{ k }}" value="{{ (v or [])|join(',') }}"></label>
+{% else %}<label class="f"><span>{{ label }}</span><input class="in" type="{{ 'color' if t == 'color' and (v or '#000').startswith('#') else ('number' if t == 'number' else 'text') }}" name="{{ k }}" value="{{ v if v is not none else '' }}"></label>{% endif %}
+{% endfor %}</div>
+{% if tab == 'header' %}<h4>اسلایدهای پس‌زمینه هیرو</h4><table class="t small"><thead><tr><th>آدرس تصویر یا شناسه رسانه</th><th>عنوان</th><th>زیرعنوان</th><th>لینک</th></tr></thead><tbody>
+{% for s in (vals.slides or []) + [{}, {}] %}<tr><td><input class="in" name="s_image" value="{{ s.image or '' }}"></td><td><input class="in" name="s_title" value="{{ s.title or '' }}"></td><td><input class="in" name="s_sub" value="{{ s.subtitle or '' }}"></td><td><input class="in" name="s_link" value="{{ s.link or '' }}"></td></tr>{% endfor %}</tbody></table>{% endif %}
+<button class="btn" style="margin-top:12px">ذخیره</button></form>
+{% endblock %}

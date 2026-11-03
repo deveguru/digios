@@ -1,0 +1,36 @@
+{% extends "admin/base.html" %}{% from "admin/_m.html" import csrf_field with context %}
+{% block title %}پیامک{% endblock %}{% block h1 %}پیامک (ملی پیامک){% endblock %}
+{% block actions %}<a class="btn l" href="?credit=1">نمایش اعتبار پنل</a>{% endblock %}
+{% block body %}
+{% if credit is not none %}<div class="alert info">اعتبار پنل ملی پیامک: <b>{{ credit }}</b></div>{% endif %}
+<form class="card" method="post">{{ csrf_field() }}<input type="hidden" name="action" value="creds"><h3>اتصال وب‌سرویس و ورود با کد یکبار مصرف</h3><div class="g3">
+<label class="f"><span>نام کاربری پنل</span><input class="in mono" name="username" value="{{ s.username }}"></label>
+<label class="f"><span>رمز / کلید API {{ '(تنظیم شده)' if s.password_set }}</span><input class="in mono" name="password" autocomplete="off" placeholder="برای تغییر وارد کنید"></label>
+<label class="f"><span>شماره فرستنده</span><input class="in mono" name="sender" value="{{ s.sender }}"></label>
+<label class="f"><span>کد الگوی OTP (bodyId)</span><input class="in mono" name="otp_pattern" value="{{ s.otp_pattern }}"></label>
+<label class="f"><span>طول کد</span><input class="in" name="otp_length" value="{{ s.otp_length }}"></label><label class="f"><span>اعتبار کد (ثانیه)</span><input class="in" name="otp_expire" value="{{ s.otp_expire }}"></label></div>
+<button class="btn">ذخیره</button></form>
+<form class="card row" method="post">{{ csrf_field() }}<input type="hidden" name="action" value="test"><input class="in" name="phone" placeholder="موبایل برای تست" style="width:220px"><button class="btn l">ارسال کد آزمایشی</button></form>
+<form class="card" method="post">{{ csrf_field() }}<input type="hidden" name="action" value="pwsms_auto">
+<h3>{{ ic('message-square-text') }} پیامک تایید سفارش بعد از خرید (ووکامرس فارسی — ملی پیامک)</h3>
+<p class="small">الگو: <span class="mono">{{ pw.pattern or '—' }}</span> — وضعیت‌های ارسال: {% for s in pw.statuses %}{{ ostatus(s) }} {% endfor %}
+{{ tag('ok', 'وب‌سرویس و پیامک خریدار فعال') if pw.enabled else tag('fail', 'پیامک خریدار غیرفعال یا اطلاعات وب‌سرویس ناقص') }}</p>
+<div class="row" style="gap:16px;flex-wrap:wrap;align-items:center">
+  <label class="row" style="gap:8px"><label class="switch"><input type="checkbox" name="auto" value="1" {{ 'checked' if pw.auto.auto }}><i></i></label>
+  <b>ارسال خودکار برای سفارش‌هایی که پیامک نگرفته‌اند</b></label>
+  <label class="row small" style="gap:6px">بازه بررسی <input class="in" type="number" name="hours" min="1" max="168" value="{{ pw.auto.hours or 24 }}" style="width:80px"> ساعت گذشته</label>
+  <button class="btn s">{{ ic('save') }} ذخیره</button>
+</div>
+<p class="small muted">هر ۱۰ دقیقه سفارش‌های پرداخت‌شده بازه بالا بررسی می‌شوند؛ اگر پیامک تایید به هر دلیلی ارسال نشده باشد، ارسال می‌شود (حداکثر ۳ تلاش برای هر سفارش). سفارشی که پیامک گرفته دوباره پیامک نمی‌گیرد.
+{% if pw.auto.last_run %}<br>آخرین بررسی: {{ pw.auto.last_run }} — {% set r = pw.auto.last_result or {} %}بررسی: {{ fa(r.checked or 0) }}، ارسال: {{ fa(r.sent or 0) }}، ناموفق: {{ fa(r.failed or 0) }}، رد شده (۳ تلاش ناموفق): {{ fa(r.skipped or 0) }}{% endif %}</p>
+</form>
+<form class="card row sp" method="post">{{ csrf_field() }}<input type="hidden" name="action" value="pwsms_now">
+<span>{{ fa(pw.unsent) }} سفارش پرداخت‌شده در ۲۴ ساعت اخیر بدون پیامک تایید.</span><button class="btn s">{{ ic('send') }} بررسی و ارسال همین حالا</button></form>
+<form class="card" method="post">{{ csrf_field() }}<input type="hidden" name="action" value="statuses"><h3>پیامک تغییر وضعیت سفارش (الگو)</h3>
+<p class="small muted">متغیرهای مجاز به ترتیب الگو (با کاما): {{ vars|join('، ') }}</p>
+<div class="tw"><table class="t small"><thead><tr><th>وضعیت</th><th>فعال</th><th>کد الگو</th><th>متغیرها</th></tr></thead><tbody>
+{% for st in statuses %}{% set c = st_cfg.get(st.slug) or {} %}<tr><td>{{ st.label }}</td><td><input type="checkbox" name="en_{{ st.slug }}" value="1" {{ 'checked' if (c.enabled or 0)|int }}></td>
+<td><input class="in mono" name="pt_{{ st.slug }}" value="{{ c.pattern or '' }}" style="width:130px"></td><td><input class="in mono" name="vr_{{ st.slug }}" value="{{ c.vars or '' }}" placeholder="first_name,order_id,tracking_code"></td></tr>{% endfor %}</tbody></table></div>
+<button class="btn" style="margin-top:10px">ذخیره الگوها</button></form>
+<div class="card tw"><h3>گزارش ارسال</h3><table class="t small">{% for l in logs %}<tr><td>{{ jdt(l.created_at) }}</td><td class="mono">{{ l.phone }}</td><td>{{ tag(l.kind, kind='smsk') }}</td><td>{{ l.pattern or '' }}</td><td>{{ tag('ok' if l.ok else 'fail') }}</td><td class="mono" style="max-width:280px;overflow:hidden">{{ l.result|truncate(80) }}</td></tr>{% endfor %}</table></div>
+{% endblock %}

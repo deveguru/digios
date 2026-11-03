@@ -1,0 +1,23 @@
+{% extends "admin/base.html" %}{% from "admin/_m.html" import csrf_field with context %}
+{% block title %}پشتیبان‌گیری{% endblock %}{% block h1 %}پشتیبان‌گیری{% endblock %}
+{% block body %}
+<div class="kpis">
+  <div class="kpi"><span>تعداد نسخه‌ها</span><b>{{ fa(rows|length) }}</b></div>
+  <div class="kpi"><span>حجم کل</span><b>{{ fa(((rows|sum(attribute='size')) / 1073741824)|round(2)) }} GB</b></div>
+  <div class="kpi"><span>آخرین پشتیبان</span><b>{{ jdt(last.at) if last else '—' }}</b></div>
+</div>
+<form class="card" method="post">{{ csrf_field() }}<input type="hidden" name="action" value="create"><h3>{{ ic('database-backup') }} پشتیبان جدید</h3>
+<p class="small muted">فایل‌ها در پوشه‌ی خصوصی هاست (خارج از دسترس وب) ذخیره می‌شوند و فقط مدیران سایت و مالک شبکه می‌توانند آن‌ها را دانلود کنند. از هر نوع، {{ fa(6) }} نسخه‌ی آخر نگه داشته می‌شود.</p>
+<div class="row">
+  <button class="btn" name="kind" value="full">{{ ic('hard-drive') }} کامل (دیتابیس + همه فایل‌ها)</button>
+  <button class="btn l" name="kind" value="db">{{ ic('database') }} فقط دیتابیس</button>
+  <button class="btn l" name="kind" value="files">{{ ic('folder-archive') }} فقط فایل‌ها</button>
+</div></form>
+<div class="card tw"><h3>{{ ic('archive') }} نسخه‌های موجود</h3><table class="t"><thead><tr><th>فایل</th><th>نوع</th><th>زمان</th><th>حجم</th><th></th></tr></thead><tbody>
+{% for b in rows %}<tr><td class="mono">{{ b.name }}</td><td><span class="badge tag" style="--c:{{ tag_color(b.kind) }}">{{ ic('database' if b.kind == 'db' else 'folder-archive') }}{{ 'دیتابیس' if b.kind == 'db' else 'فایل‌ها' }}</span></td><td>{{ jdt(b.at ~ ':00') }}</td>
+<td>{{ fa((b.size / 1048576)|round(1)) }} MB</td>
+<td>{% if b.running %}{{ tag('running', 'در حال ساخت…', icon='loader') }}{% else %}<a class="btn s" href="/admin/backups/download/{{ b.name }}">{{ ic('download') }} دانلود</a>
+<form method="post" style="display:inline">{{ csrf_field() }}<input type="hidden" name="action" value="delete"><input type="hidden" name="name" value="{{ b.name }}"><button class="btn s red" onclick="return confirm('حذف شود؟')">{{ ic('trash-2') }}</button></form>{% endif %}</td></tr>
+{% else %}<tr><td colspan="5" class="muted">هنوز پشتیبانی ساخته نشده است.</td></tr>{% endfor %}</tbody></table></div>
+{% if rows|selectattr('running')|list %}<script>setTimeout(()=>location.reload(),15000)</script>{% endif %}
+{% endblock %}

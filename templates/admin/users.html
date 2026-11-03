@@ -1,0 +1,56 @@
+{% extends "admin/base.html" %}{% from "admin/_m.html" import csrf_field with context %}
+{% block title %}کاربران و دسترسی‌ها{% endblock %}{% block h1 %}کاربران و دسترسی‌ها{% endblock %}
+{% block body %}
+<div class="alert info small">سلسله‌مراتب: <b>مالک شبکه</b> (داشبورد مادر + همه سایت‌ها) {{ ic('arrow-right') }} <b>مدیر سایت</b> (همه منوهای این سایت؛ همان مدیر کل وردپرس) {{ ic('arrow-right') }} <b>کارمند</b> (فقط منوهایی که تیک می‌خورد) {{ ic('arrow-right') }} <b>مشتری</b>.</div>
+<div class="g2">
+<div class="card tw"><h3>{{ ic('search') }} جستجوی کاربر برای دادن دسترسی</h3>
+<div class="usearch"><input class="in" id="uq" placeholder="نام کاربری، شماره موبایل، نام یا ایمیل…" autocomplete="off" dir="auto">
+<div class="ures" id="ures"></div></div>
+<h3 style="margin-top:18px">{{ ic('users') }} تیم مدیریت</h3>
+<table class="t small team"><thead><tr><th>کاربر</th><th>نقش</th><th>موبایل</th><th></th></tr></thead><tbody>{% for u in team %}
+<tr class="{{ 'on' if sel and sel.id == u.id }}"><td><a href="?edit={{ u.id }}"><b>{{ u.display_name or u.username }}</b></a><div class="mono muted">{{ u.username }}</div></td>
+<td>{{ tag(u.role, roles[u.role]) }}</td>
+<td class="mono">{% if u.phone %}<span dir="ltr">{{ u.phone }}</span>{% elif u.role == 'staff' %}<span class="nophone" title="بدون موبایل: اگر با کد پیامکی وارد شود، به حساب دیگری با همان شماره می‌رود">{{ ic('triangle-alert') }} بدون موبایل</span>{% else %}<span class="muted">—</span>{% endif %}</td>
+<td>{% if u.status == 'disabled' %}{{ tag('disabled', 'مسدود') }}{% else %}<a class="btn s l" href="?edit={{ u.id }}">{{ ic('pencil') }}</a>{% endif %}</td></tr>{% endfor %}</tbody></table></div>
+{% if sel %}<form class="card" method="post">{{ csrf_field() }}<input type="hidden" name="id" value="{{ sel.id }}"><h3>{{ sel.display_name or sel.username }}</h3>
+<div class="g2"><label class="f"><span>نقش</span><select class="in" name="role" id="role">{% for k, l in roles.items() %}{% if k != 'owner' or user.role == 'owner' %}<option value="{{ k }}" {{ 'selected' if sel.role == k }}>{{ l }}</option>{% endif %}{% endfor %}</select></label>
+<label class="f"><span>وضعیت</span><select class="in" name="status"><option value="active">فعال</option><option value="disabled" {{ 'selected' if sel.status == 'disabled' }}>مسدود</option></select></label>
+<label class="f"><span>رمز جدید (اختیاری)</span><input class="in" type="password" name="password" autocomplete="new-password"></label>
+<label class="f"><span>موبایل (برای ورود با کد پیامکی)</span><input class="in mono" name="phone" value="{{ sel.phone or '' }}" placeholder="09…" dir="ltr"></label>
+<label class="f"><span>الگوی آماده</span><select class="in" name="preset"><option value="">— دستی —</option>{% for k in presets %}<option>{{ k }}</option>{% endfor %}</select></label></div>
+{% if sel.role == 'staff' and not sel.phone %}<div class="alert error small">{{ ic('triangle-alert') }} این کارمند شماره موبایل ندارد. اگر با «ورود با شماره موبایل» وارد شود، وارد حساب مشتری دیگری با همان شماره می‌شود و پیشخوان مدیریت را نمی‌بیند. شماره موبایل او را بالا وارد کنید (یا با نام کاربری <b>{{ sel.username }}</b> و رمز وارد شود).</div>{% endif %}
+{% if same_phone %}<div class="alert info small">حساب‌های دیگر با همین شماره: {% for u in same_phone %}<a href="?edit={{ u.id }}">{{ u.username }}</a> ({{ roles.get(u.role, u.role) }}) {% endfor %} — ورود پیامکی همیشه این حساب تیم را انتخاب می‌کند.</div>{% endif %}
+<div id="permbox"><h4>منوهای مجاز برای کارمند</h4><div class="g3">{% for key, label, ep, icon, f in menu_all %}<label class="small"><input type="checkbox" name="perms" value="{{ key }}" {{ 'checked' if key in sel_perms }}> {{ label }}</label>{% endfor %}</div></div>
+<button class="btn" style="margin-top:12px">ذخیره دسترسی</button></form>
+{% else %}<form class="card" method="post">{{ csrf_field() }}<input type="hidden" name="action" value="create"><h3>کاربر جدید</h3><div class="g2">
+<label class="f"><span>نام کاربری</span><input class="in" name="username" required></label><label class="f"><span>رمز عبور</span><input class="in" type="password" name="password" required></label>
+<label class="f"><span>نام</span><input class="in" name="first_name"></label><label class="f"><span>نام خانوادگی</span><input class="in" name="last_name"></label>
+<label class="f"><span>موبایل</span><input class="in" name="phone"></label><label class="f"><span>نقش</span><select class="in" name="role">{% for k, l in roles.items() if k != 'owner' %}<option value="{{ k }}" {{ 'selected' if k == 'staff' }}>{{ l }}</option>{% endfor %}</select></label></div>
+<div class="g3">{% for key, label, ep, icon, f in menu_all %}<label class="small"><input type="checkbox" name="perms" value="{{ key }}"> {{ label }}</label>{% endfor %}</div><button class="btn" style="margin-top:10px">ایجاد</button></form>{% endif %}
+</div>
+{% endblock %}
+{% block scripts %}<style>
+.usearch{position:relative}.ures{display:none;position:absolute;inset-inline:0;top:calc(100% + 6px);z-index:30;background:var(--card);border:1px solid var(--line);border-radius:14px;box-shadow:var(--sh-h);max-height:380px;overflow:auto}
+.ures.show{display:block}.ures a{display:flex;align-items:center;gap:10px;padding:9px 12px;border-bottom:1px solid var(--line);color:inherit}.ures a:last-child{border-bottom:0}
+.ures a:hover,.ures a.act{background:var(--card-2)}.ures .av{width:34px;height:34px;border-radius:50%;display:grid;place-items:center;color:#fff;font-weight:800;flex:0 0 34px;background:var(--c,#64748b)}
+.ures .nm{flex:1;min-width:0}.ures .nm b{display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.ures .nm small{color:var(--ink-2)}.ures mark{background:color-mix(in srgb,var(--brand) 25%,transparent);color:inherit;border-radius:3px}
+.ures .empty{padding:12px;color:var(--ink-2);font-size:.9em}
+table.team td,table.team th{vertical-align:middle;padding-top:9px;padding-bottom:9px}table.team td .muted{font-size:.85em;line-height:1.4}
+table.team td:nth-child(3){white-space:nowrap}table.team tr.on td{background:color-mix(in srgb,var(--brand) 8%,transparent)}
+table.team .nophone{display:inline-flex;align-items:center;gap:4px;color:#dc2626;font-family:inherit;font-weight:700}table.team .nophone .ic{width:15px;height:15px}
+table.team .badge{vertical-align:middle}
+</style><script>
+(function(){const q=document.getElementById('uq'),box=document.getElementById('ures');if(!q)return;let t,seq=0,act=-1;
+const esc=s=>String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const hl=(s,w)=>{s=esc(s);if(!w)return s;const i=s.toLowerCase().indexOf(w.toLowerCase());return i<0?s:s.slice(0,i)+'<mark>'+s.slice(i,i+w.length)+'</mark>'+s.slice(i+w.length)};
+const enDigits=s=>s.replace(/[۰-۹]/g,d=>'۰۱۲۳۴۵۶۷۸۹'.indexOf(d)).replace(/[٠-٩]/g,d=>'٠١٢٣٤٥٦٧٨٩'.indexOf(d));
+async function run(){const v=q.value.trim(),my=++seq;if(v.length<2){box.classList.remove('show');return}
+ const r=await fetch('/admin/users/search?q='+encodeURIComponent(v)).then(r=>r.json()).catch(()=>[]);if(my!==seq)return;const w=enDigits(v);act=-1;
+ box.innerHTML=r.length?r.map(u=>`<a href="?edit=${u.id}"><span class="av" style="--c:${u.color}">${esc((u.name||u.username||'?').trim().charAt(0))}</span>
+  <span class="nm"><b>${hl(u.name||u.username,v)}</b><small class="mono">${hl(u.username,v)}${u.phone?' · <span dir="ltr">'+hl(u.phone,w)+'</span>':''}${u.email?' · '+hl(u.email,v):''} · #${fa(u.id)}</small></span>
+  ${TAG(u.role_label,u.color)}${u.disabled?TAG('مسدود','#dc2626'):''}</a>`).join(''):'<div class="empty">کاربری پیدا نشد.</div>';box.classList.add('show')}
+q.addEventListener('input',()=>{clearTimeout(t);t=setTimeout(run,220)});q.addEventListener('focus',()=>{if(q.value.trim().length>1)run()});
+q.addEventListener('keydown',e=>{const items=[...box.querySelectorAll('a')];if(!items.length)return;
+ if(e.key==='ArrowDown'||e.key==='ArrowUp'){e.preventDefault();act=(act+(e.key==='ArrowDown'?1:-1)+items.length)%items.length;items.forEach((a,i)=>a.classList.toggle('act',i===act))}
+ else if(e.key==='Enter'){e.preventDefault();(items[act]||items[0]).click()}else if(e.key==='Escape')box.classList.remove('show')});
+document.addEventListener('click',e=>{if(!e.target.closest('.usearch'))box.classList.remove('show')});})();const r=document.getElementById('role'),pb=document.getElementById('permbox');if(r&&pb){const t=()=>pb.style.display=r.value==='staff'?'':'none';r.onchange=t;t()}</script>{% endblock %}

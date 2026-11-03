@@ -1,0 +1,29 @@
+{% extends "base.html" %}
+{% from "shop/_card.html" import card with context %}
+{% block title %}{{ title }}{% if page > 1 %} - صفحه {{ fa(page) }}{% endif %} | {{ site_name }}{% endblock %}
+{% block desc %}{{ (category.description|striptags)[:160] if category and category.description else title }}{% endblock %}
+{% block body %}
+<div class="wrap">
+  <div class="crumbs"><a href="/">خانه</a> / <a href="/shop/">فروشگاه</a>{% for c in crumbs %} / <a href="/product-category/{{ url_slug(c.slug) }}/">{{ c.name }}</a>{% endfor %}</div>
+  <div class="row sp"><h1 style="margin:0;font-size:1.4em">{{ title }}</h1><span class="muted small">{{ fa(total) }} محصول</span></div>
+  {% if children %}<section data-rail style="margin:16px 0"><div class="cats rail">{% for c in children %}{% set img = c.image_id %}
+    <a class="cat" draggable="false" href="/product-category/{{ url_slug(c.slug) }}/"><span class="c">{% if img %}<img src="{{ media_url(img, 'thumbnail') }}" alt="" loading="lazy">{% else %}{{ c.name[:1] }}{% endif %}</span>{{ c.name }}</a>{% endfor %}</div></section>{% endif %}
+  <div class="toolbar">
+    <div class="chips">
+      {% set opts = [('menu_order','پیش‌فرض'),('popularity','پرفروش‌ترین'),('views','پربازدیدترین'),('date','جدیدترین'),('price','ارزان‌ترین'),('price-desc','گران‌ترین')] %}
+      {% for k, l in opts %}<a class="chip {{ 'on' if orderby == k }}" href="?{% if q %}s={{ q|urlencode }}&{% endif %}orderby={{ k }}">{{ l }}</a>{% endfor %}
+    </div>
+  </div>
+  {% if products %}<div class="grid">{% for p in products %}{{ card(p) }}{% endfor %}</div>
+  {% else %}<div class="card center" style="padding:50px"><p>محصولی یافت نشد.</p><a class="btn" href="/shop/">مشاهده همه محصولات</a></div>{% endif %}
+  {% if pages > 1 %}<div class="pager">
+    {% set qs = ('?' ~ request.query_string.decode()) if request.query_string else '' %}
+    {% if page > 1 %}<a href="{{ base_url }}{% if page > 2 %}page/{{ page - 1 }}/{% endif %}{{ qs }}">‹</a>{% endif %}
+    {% for i in range([1, page - 3]|max, [pages, page + 3]|min + 1) %}
+      {% if i == page %}<span class="on">{{ fa(i) }}</span>{% else %}<a href="{{ base_url }}{% if i > 1 %}page/{{ i }}/{% endif %}{{ qs }}">{{ fa(i) }}</a>{% endif %}
+    {% endfor %}
+    {% if page < pages %}<a href="{{ base_url }}page/{{ page + 1 }}/{{ qs }}">›</a>{% endif %}
+  </div>{% endif %}
+  {% if category and category.description and page == 1 %}<div class="card content" style="margin-top:20px">{{ category.description|safe }}</div>{% endif %}
+</div>
+{% endblock %}

@@ -1,0 +1,58 @@
+{% extends "admin/base.html" %}{% from "admin/_m.html" import st, csrf_field with context %}
+{% block title %}سفارش {{ o.id }}{% endblock %}{% block h1 %}سفارش #{{ fa(o.id) }} {{ st(o.status, statuses) }}{% endblock %}
+{% block actions %}<a class="btn" href="/admin/orders/print-slips?order_ids={{ o.id }}" target="_blank">{{ ic('printer') }} چاپ سفارش</a><a class="btn l" href="/?download_invoice=true&order_id={{ o.id }}&order_key={{ o.order_key }}" target="_blank">{{ ic('file-text') }} دانلود فاکتور</a><a class="btn l" href="/admin/orders/{{ o.id }}/print" target="_blank">{{ ic('printer') }} فاکتور</a><a class="btn l" href="/admin/orders/print?ids={{ o.id }}&mode=label" target="_blank">{{ ic('tag') }} برچسب</a>{% if info.tr and info.tr.tracking_token %}<a class="btn l" href="/gt-track/{{ info.tr.tracking_token }}/" target="_blank">{{ ic('link') }} لینک رهگیری</a>{% endif %}{% endblock %}
+{% block body %}
+<div class="g2">
+<div>
+  {% if sms_info.body %}<div class="card row sp" style="padding:12px 16px">
+  <span>{{ ic('message-square-text' if sms_info.sent else 'message-square-x') }} پیامک تایید سفارش (ووکامرس فارسی / ملی پیامک):
+  {{ tag('ok', 'ارسال شده') if sms_info.sent else tag('fail', 'ارسال نشده') }}{% if not sms_info.enabled %} <span class="small muted">— ارسال خودکار در تنظیمات خاموش است</span>{% endif %}</span>
+  <form method="post" action="/admin/orders/{{ o.id }}/pwsms" onsubmit="return {{ 'confirm(\'این سفارش قبلاً پیامک گرفته است؛ دوباره ارسال شود؟\')' if sms_info.sent else 'true' }}">{{ csrf_field() }}
+  <button class="btn s{{ ' l' if sms_info.sent }}">{{ ic('send') }} {{ 'ارسال دوباره پیامک' if sms_info.sent else 'ارسال پیامک تایید سفارش' }}</button></form></div>{% endif %}
+<div class="card"><h3>اقلام سفارش</h3><table class="t"><tbody>
+    {% for i in items %}<tr><td><div class="row" style="gap:10px;flex-wrap:nowrap">{% if i.type == 'line_item' %}<img class="thumb" src="{{ oimgs.get(i.name, '/static/img/placeholder.svg') }}" alt="" style="width:52px;height:52px;border-radius:12px;object-fit:cover">{% endif %}<div>{{ i.name }}{% set at = item_attrs(i.meta) %}{% if at %}<div class="row" style="gap:4px;margin:4px 0">{% for a, b in at %}<span class="badge tag" style="--c:#7c3aed">{{ a }}: <b>{{ b }}</b></span>{% endfor %}</div>{% endif %}</div></div></td>
+      <td>{% if i.type == 'line_item' %}× {{ fa(i.qty) }}{% else %}{{ tag(i.type, {'shipping':'ارسال','fee':'هزینه','coupon':'کوپن','tax':'مالیات'}.get(i.type, i.type), kind='item') }}{% endif %}</td><td>{{ money(i.total) }}</td>
+      <td>{% if i.product_id %}<a class="small" href="/admin/products/{{ i.product_id }}">محصول</a>{% endif %}</td></tr>{% endfor %}
+    <tr><td><b>جمع کل</b></td><td></td><td><b>{{ money(o.total) }}</b></td><td></td></tr></tbody></table>
+    <p class="small muted">پرداخت: {{ o.payment_title or '—' }} {% if o.transaction_id %}— تراکنش <span class="mono">{{ o.transaction_id }}</span>{% endif %} {% if o.paid_at %}— {{ jdt(o.paid_at) }}{% endif %}
+    {% for k in ('_card_number','zibal_payment_card_number') %}{% if (o.meta or {}).get(k) %} — کارت <span class="mono">{{ o.meta[k] }}</span>{% endif %}{% endfor %}</p>
+    {% if o.customer_note %}<div class="alert info">یادداشت مشتری: {{ o.customer_note }}</div>{% endif %}
+  </div>
+  <form class="card" method="post">{{ csrf_field() }}<input type="hidden" name="action" value="status"><h3>تغییر وضعیت</h3>
+    <div class="row"><select class="in grow" name="status" data-dots="order">{% for s in statuses %}<option value="{{ s.slug }}" {{ 'selected' if s.slug == o.status }}>{{ s.label }}</option>{% endfor %}</select>
+    <label class="small"><input type="checkbox" name="notify" value="1" checked> پیامک به مشتری</label><button class="btn">ثبت</button></div>
+    <input class="in" name="note" placeholder="توضیح (اختیاری)" style="margin-top:8px"></form>
+  {% if F.tracker %}<form class="card" method="post">{{ csrf_field() }}<input type="hidden" name="action" value="tracking"><h3>کد رهگیری مرسوله</h3>
+    <div class="row"><select class="in" name="tracking_type" style="width:auto">{% for k, c in carriers.items() %}<option value="{{ k }}" {{ 'selected' if info.tr and info.tr.tracking_type == k }}>{{ c.name }}</option>{% endfor %}</select>
+    <input class="in grow mono" name="tracking_code" value="{{ info.tr.tracking_code if info.tr else '' }}" placeholder="کد رهگیری"><button class="btn">ذخیره</button></div>
+    <div class="row" style="gap:10px;margin-top:12px;align-items:center"><b class="small">{{ ic('file-image') }} تصویر بارنامه:</b>
+      {% if info.tr and info.tr.waybill_image_url %}<a href="{{ info.tr.waybill_image_url }}" target="_blank"><img src="{{ info.tr.waybill_image_url }}" alt="بارنامه" style="width:90px;height:90px;object-fit:cover;border-radius:12px;border:1px solid var(--line)"></a>{% else %}<span class="small muted">بارگذاری نشده</span>{% endif %}
+      <label class="btn s l">{{ ic('image-up') }} {{ 'تعویض' if info.tr and info.tr.waybill_image_url else 'بارگذاری بارنامه' }}<input type="file" accept="image/*" hidden id="wbup"></label>
+      {% if info.tr and info.tr.waybill_image_url %}<button type="button" class="btn s red" id="wbrm">{{ ic('trash-2') }}</button>{% endif %}</div></form>
+  <script>document.addEventListener('DOMContentLoaded',()=>{const u=document.getElementById('wbup'),rm=document.getElementById('wbrm');
+   if(u)u.onchange=async()=>{const fd=new FormData();fd.append('order_id','{{ o.id }}');fd.append('file',u.files[0]);const r=await post('/admin/tracking/waybill',fd);if(r.ok)location.reload();else alert(r.message||'بارگذاری نشد')};
+   if(rm)rm.onclick=async()=>{if(!confirm('تصویر بارنامه حذف شود؟'))return;const r=await post('/admin/tracking/waybill',{order_id:'{{ o.id }}',remove:1});if(r.ok)location.reload()}});</script>{% endif %}
+  <div class="card"><h3>یادداشت‌ها</h3>
+    <form method="post" class="row" style="margin-bottom:10px">{{ csrf_field() }}<input type="hidden" name="action" value="note"><input class="in grow" name="note" placeholder="یادداشت جدید">
+      <label class="small"><input type="checkbox" name="customer" value="1"> نمایش به مشتری</label><button class="btn l">افزودن</button></form>
+    {% for n in notes %}<div class="small" style="border-bottom:1px solid var(--line);padding:6px 0">{{ n.content }}<div class="muted">{{ n.author }} — {{ jdt(n.created) }}{% if n.is_customer %} — <b>به مشتری</b>{% endif %}</div></div>{% endfor %}
+  </div>
+</div>
+<div>
+  <form class="card" method="post">{{ csrf_field() }}<input type="hidden" name="action" value="address"><h3>مشتری و آدرس</h3>
+    {% if cust %}<p class="small"><a href="/admin/customers/{{ cust.id }}"><b>{{ cust.display_name }}</b> ({{ cust.username }})</a></p>{% endif %}
+    {% set b = o.billing or {} %}<div class="g2">{% for k, l in [('first_name','نام'),('last_name','نام خانوادگی'),('phone','موبایل'),('state','استان'),('city','شهر'),('postcode','کد پستی')] %}
+      <label class="f"><span>{{ l }}</span><input class="in" name="b_{{ k }}" value="{{ b[k] or '' }}"></label>{% endfor %}</div>
+    <label class="f"><span>آدرس</span><textarea class="in" name="b_address_1" rows="2">{{ b.address_1 or '' }}</textarea></label>
+    {% if (o.shipping or {}).type_label %}<p>{{ tag(o.shipping.type or o.shipping.type_label, o.shipping.type_label, kind='ship') }}</p>{% endif %}
+    <button class="btn l">ذخیره آدرس</button></form>
+  {% if info.barcode %}<div class="card"><h3>بارکد تحویل</h3><img src="/admin/delivery/barcode/{{ info.barcode.barcode }}.svg" alt=""><p class="small">وضعیت تحویل: {{ info.barcode.delivery_status }} {% if info.barcode.scanned_at %}— {{ jdt(info.barcode.scanned_at) }}{% endif %}</p></div>{% endif %}
+  <div class="card"><h3>تاریخچه وضعیت</h3><table class="t small"><tbody>{% for h in hist %}<tr><td>{{ h.from_status or '—' }} {{ ic('arrow-right') }} {{ h.to_status }}</td><td>{{ h.user_login }}</td><td>{{ jdt(h.created_at) }}</td></tr>{% else %}<tr><td class="muted">—</td></tr>{% endfor %}</tbody></table></div>
+  {% if pays %}<div class="card"><h3>تراکنش‌های درگاه</h3><table class="t small">{% for p in pays %}<tr><td>{{ p.gateway }}</td><td class="mono">{{ p.transid }}</td><td>{{ tag(p.status) }}</td><td>{{ jdt(p.created) }}</td></tr>{% endfor %}</table></div>{% endif %}
+  {% if F.torob %}<form class="card" method="post">{{ csrf_field() }}<input type="hidden" name="action" value="torob"><h3>{{ ic('radar') }} اطلاعات وضعیت برای ترب {% if (o.meta or {})._torob_clid %}<span class="badge">ورودی از ترب</span>{% endif %}</h3>
+    <div class="g2">{% for k, l in torob_fields.items() %}<label class="f"><span>{{ l }}</span><input class="in" name="t_{{ k }}" value="{{ (o.meta or {}).get('_torob_' ~ k, '') }}"></label>{% endfor %}</div>
+    <button class="btn l">{{ ic('save') }} ذخیره</button></form>{% endif %}
+  <div class="card small muted">IP: {{ o.ip or '—' }} — ثبت: {{ jdt(o.created) }} — ویرایش: {{ jdt(o.modified) }} — از طریق: {{ o.created_via or '—' }}</div>
+</div>
+</div>
+{% endblock %}

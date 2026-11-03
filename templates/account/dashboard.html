@@ -1,0 +1,57 @@
+{% extends "base.html" %}
+{% block title %}حساب کاربری | {{ site_name }}{% endblock %}
+{% block body %}
+<div class="wrap"><div class="acc">
+  <aside class="card">
+    <div class="who"><div class="av">{% if user.avatar_id %}<img src="{{ media_url(user.avatar_id, 'thumbnail') }}" alt="">{% else %}{{ (user.first_name or user.display_name or user.username)[:1] }}{% endif %}</div>
+      <div><b>{{ user.display_name or user.username }}</b><div class="small" style="opacity:.85">{{ user.phone or user.username }}</div></div></div>
+    <nav>
+      {% set items = [('dashboard','پیشخوان','layout-dashboard'),('orders','سفارش‌ها','package'),('tracking','پیگیری مرسوله','truck')] %}
+      {% if F.wallet %}{% set items = items + [('wallet','کیف پول','wallet')] %}{% endif %}
+      {% set items = items + [('edit-address','آدرس','map-pin'),('edit-account','جزئیات حساب','user-cog')] %}
+      {% for k, l, icn in items %}<a class="{{ 'on' if section == k }}" href="/my-account/{{ '' if k == 'dashboard' else k ~ '/' }}">{{ ic(icn) }} {{ l }}</a>{% endfor %}
+      {% if is_admin %}<a href="/admin/">{{ ic('layout-dashboard') }} مدیریت سایت</a>{% endif %}
+      <a href="/logout">{{ ic('log-out') }} خروج</a>
+    </nav>
+  </aside>
+  <section>
+    {% if section == 'dashboard' %}
+      <div class="kpis"><div class="kpi">{{ ic('package') }}<div><span>تعداد سفارش‌ها</span><b>{{ fa(order_total) }}</b></div></div><div class="kpi">{{ ic('receipt') }}<div><span>مجموع خرید</span><b>{{ money(spent) }}</b></div></div>
+        {% if F.wallet %}<div class="kpi">{{ ic('wallet') }}<div><span>موجودی کیف پول</span><b>{{ money(user.wallet_balance) }}</b></div></div>{% endif %}</div>
+      <div class="card" style="margin-top:16px"><h3 style="margin-top:0">آخرین سفارش‌ها</h3>{% include "account/_orders.html" %}</div>
+    {% elif section == 'orders' %}
+      <div class="card"><h3 style="margin-top:0">سفارش‌ها</h3>{% include "account/_orders.html" %}
+      {% if order_total > 20 %}<div class="pager">{% if page > 1 %}<a href="?page={{ page - 1 }}">‹</a>{% endif %}<span class="on">{{ fa(page) }}</span>{% if page * 20 < order_total %}<a href="?page={{ page + 1 }}">›</a>{% endif %}</div>{% endif %}</div>
+    {% elif section == 'tracking' %}
+      {% for o in mine %}{% with info = o._info, items = o._items %}{% include "shop/_track_card.html" %}{% endwith %}
+      {% else %}<div class="card muted">سفارشی برای پیگیری ندارید.</div>{% endfor %}
+      <div style="margin-top:16px">{% include "shop/_track_form.html" %}</div>
+    {% elif section == 'wallet' %}
+      <div class="kpis"><div class="kpi">{{ ic('wallet') }}<div><span>موجودی</span><b>{{ money(user.wallet_balance) }}</b></div></div></div>
+      <form class="card row" method="post" action="/my-account/wallet/charge" style="margin-top:14px"><input type="hidden" name="_csrf" value="{{ csrf }}">
+        <input class="input grow" name="amount" inputmode="numeric" placeholder="مبلغ شارژ (تومان)" style="max-width:260px"><button class="btn">شارژ کیف پول</button></form>
+      <div class="card" style="margin-top:14px"><table class="t rsp"><thead><tr><th>تاریخ</th><th>شرح</th><th>مبلغ</th><th>مانده</th></tr></thead><tbody>
+        {% for t in tx %}<tr><td data-l="تاریخ">{{ jdt(t.created_at) }}</td><td data-l="شرح">{{ t.description }}</td><td data-l="مبلغ" style="color:{{ 'var(--ok)' if t.amount > 0 else 'var(--bad)' }}">{{ money(t.amount) }}</td><td data-l="مانده">{{ money(t.balance_after) }}</td></tr>
+        {% else %}<tr><td colspan="4" class="muted">تراکنشی ثبت نشده است.</td></tr>{% endfor %}</tbody></table></div>
+    {% elif section == 'edit-address' %}{% set b = user.billing or {} %}
+      <form class="card" method="post"><input type="hidden" name="_csrf" value="{{ csrf }}"><h3 style="margin-top:0">آدرس ارسال</h3>
+        <div class="grid2">{% for k, l in [('first_name','نام'),('last_name','نام خانوادگی'),('phone','موبایل'),('state','استان'),('city','شهر'),('postcode','کد پستی')] %}
+          <label class="field"><span>{{ l }}</span><input class="input" name="{{ k }}" value="{{ b[k] or '' }}"></label>{% endfor %}</div>
+        <label class="field"><span>آدرس</span><textarea class="input" name="address_1" rows="2">{{ b.address_1 or '' }}</textarea></label><button class="btn">ذخیره</button></form>
+    {% elif section == 'edit-account' %}
+      <form class="card" method="post" enctype="multipart/form-data"><input type="hidden" name="_csrf" value="{{ csrf }}"><h3 style="margin-top:0">جزئیات حساب</h3>
+        <div class="grid2"><label class="field"><span>نام</span><input class="input" name="first_name" value="{{ user.first_name }}"></label>
+        <label class="field"><span>نام خانوادگی</span><input class="input" name="last_name" value="{{ user.last_name }}"></label>
+        <label class="field"><span>نام نمایشی</span><input class="input" name="display_name" value="{{ user.display_name }}"></label>
+        <label class="field"><span>ایمیل</span><input class="input" name="email" value="{{ user.email or '' }}" dir="ltr"></label>
+        <label class="field"><span>تصویر پروفایل</span><input class="input" type="file" name="avatar" accept="image/*"></label>
+        <label class="field"><span>رنگ پروفایل</span><input class="input" type="color" name="color" value="{{ user.color or '#ef5c26' }}"></label></div>
+        <h4>تغییر رمز عبور</h4>
+        <div class="grid2">{% if user.pass_hash %}<label class="field"><span>رمز فعلی</span><input class="input" type="password" name="current_password"></label>{% endif %}
+        <label class="field"><span>رمز جدید</span><input class="input" type="password" name="new_password" minlength="6"></label></div>
+        <p class="small muted">نام کاربری شما: <b dir="ltr">{{ user.username }}</b> — با نام کاربری یا موبایل و رمز عبور هم می‌توانید وارد شوید.</p>
+        <button class="btn">ذخیره تغییرات</button></form>
+    {% endif %}
+  </section>
+</div></div>
+{% endblock %}

@@ -1,0 +1,37 @@
+{% extends "base.html" %}
+{% from "shop/_card.html" import card, rail with context %}
+{% block title %}{{ site_name }}{% endblock %}
+{% block body %}
+{% for s in sections %}
+{% if s.type == 'hero' %}{% set hdr = s.hdr %}
+<section class="hero" data-interval="{{ hdr.slideshow_interval or 6 }}" style="{{ hero_css() }}">
+  <div class="slides">{% for sl in s.slides %}<div class="slide {{ 'on' if loop.first }}" style="background-image:url('{{ sl._img }}')"></div>{% endfor %}</div>
+  <div class="in">
+    {% if hdr.badge_text %}<span class="badge2">{{ ic('sparkles') }}{{ hdr.badge_text }}</span>{% endif %}
+    <h1>{{ hdr.hero_title_line1 or site_name }}{% if hdr.hero_title_line2 %}<br><em>{{ hdr.hero_title_line2 }}</em>{% endif %}{% if hdr.hero_title_line3 %}<br>{{ hdr.hero_title_line3 }}{% endif %}</h1>
+    <p>{{ hdr.hero_subtitle or S('blogdescription') or '' }}</p>
+    <div class="row"><a class="btn" href="{{ hdr.hero_btn_primary_link or '/shop/' }}">{{ ic('store') }}{{ hdr.hero_btn_primary_text or 'مشاهده محصولات' }}</a>
+      {% if hdr.hero_btn_secondary_text %}<a class="btn ghost" href="{{ hdr.hero_btn_secondary_link or '#' }}">{{ hdr.hero_btn_secondary_text }}</a>{% endif %}</div>
+    {% if hdr.stat_1_num %}<div class="stats">{% for i in range(1, 5) %}{% if hdr['stat_%d_num'|format(i)] %}<div><b>{{ hdr['stat_%d_num'|format(i)] }}</b><span>{{ hdr['stat_%d_label'|format(i)] }}</span></div>{% endif %}{% endfor %}</div>{% endif %}
+  </div>
+</section>
+{% elif s.type == 'stories' and s.stories %}<div class="wrap"><section class="sec">{% with stories = s.stories %}{% include "shop/_stories.html" %}{% endwith %}</section></div>
+{% elif s.type == 'categories' and s.cats %}<div class="wrap"><section class="sec" data-rail>
+  <div class="sec-h"><h2>{{ ic('layout-grid') }}{{ s.title or 'دسته‌بندی‌ها' }}</h2><div class="tools"><a class="more" href="/shop/">همه محصولات {{ ic('chevron-left') }}</a>
+    {% if s.style != 'tiles' %}<button class="nav-b" data-prev>{{ ic('chevron-right') }}</button><button class="nav-b" data-next>{{ ic('chevron-left') }}</button>{% endif %}</div></div>
+  {% if s.style == 'tiles' %}<div class="tiles">{% for c in s.cats %}<a class="tile" href="{{ c._url }}">{% if c._img %}<img src="{{ c._img|replace('-150x150', '') }}" alt="" loading="lazy">{% endif %}<span>{{ c.name }}</span></a>{% endfor %}</div>
+  {% else %}<div class="cats rail {{ 'cards' if s.style == 'cards' }}">{% for c in s.cats %}<a class="cat" href="{{ c._url }}" draggable="false"><span class="c">{% if c._img %}<img src="{{ c._img }}" alt="" loading="lazy">{% else %}{{ ic('folder') }}{% endif %}</span>{{ c.name }}</a>{% endfor %}</div>{% endif %}
+</section></div>
+{% elif s.type in ('product_slider', 'deals') and s.products and (s.type == 'deals' or s._banner or s._end) %}{% include "shop/_deals.html" %}
+{% elif s.type == 'product_slider' and s.products %}<div class="wrap">{{ rail(s.title, s.products, s.link, {'sale':'percent','bestsellers':'trending-up','newest':'sparkles','views':'eye'}.get(s.source, 'layers'), s.style or 'slider') }}</div>
+{% elif s.type == 'banner_slider' and s['items'] %}<div class="wrap"><section class="sec banners" data-rail data-autoplay="{{ s.interval or 5 }}" style="--ratio:{{ s.ratio or '3/1' }}">
+  {% if s.title %}<div class="sec-h"><h2>{{ ic('image') }}{{ s.title }}</h2></div>{% endif %}
+  <div class="rail snap">{% for b in s['items'] %}<a class="banner" href="{{ b.link or '#' }}" draggable="false"><img src="{{ b._img }}" alt="{{ b.title or '' }}" loading="lazy">{% if b.title %}<span>{{ b.title }}</span>{% endif %}</a>{% endfor %}</div>
+  {% if s['items']|length > 1 %}<div class="dots">{% for b in s['items'] %}<i></i>{% endfor %}</div>{% endif %}
+</section></div>
+{% elif s.type == 'banners_grid' and s['items'] %}<div class="wrap"><section class="sec">{% if s.title %}<div class="sec-h"><h2>{{ ic('image') }}{{ s.title }}</h2></div>{% endif %}
+  <div class="bgrid" style="--cols:{{ s.cols or 2 }}">{% for b in s['items'] %}<a href="{{ b.link or '#' }}"><img src="{{ b._img }}" alt="{{ b.title or '' }}" loading="lazy"></a>{% endfor %}</div></section></div>
+{% elif s.type == 'html' %}<div class="wrap"><section class="sec">{{ s.html }}</section></div>
+{% endif %}
+{% endfor %}
+{% endblock %}

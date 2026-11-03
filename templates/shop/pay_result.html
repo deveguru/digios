@@ -1,0 +1,11 @@
+{% extends "base.html" %}
+{% block title %}نتیجه پرداخت | {{ site_name }}{% endblock %}
+{% block body %}
+<div class="wrap" style="max-width:620px;margin-top:30px"><div class="card center">
+  <div style="color:{{ 'var(--ok)' if ok else 'var(--warn)' }}">{{ ic('circle-check' if ok else 'triangle-alert', '', 64) }}</div>
+  <h2>{{ 'پرداخت موفق' if ok else 'پرداخت انجام نشد' }}</h2>
+  <p>{{ message }}</p>
+  {% if o %}<p class="muted">سفارش #{{ fa(o.id) }} — {{ money(o.total) }}</p>
+  <div class="row" style="justify-content:center"><a class="btn" href="/pay/{{ o.id }}/?key={{ o.order_key }}">تلاش دوباره</a><a class="btn light" href="/cart/">بازگشت</a></div>{% endif %}
+</div></div>
+{% endblock %}

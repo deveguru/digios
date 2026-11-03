@@ -1,0 +1,10 @@
+{% extends "admin/base.html" %}
+{% block title %}پنل مدیریت{% endblock %}{% block h1 %}پنل مدیریت{% endblock %}
+{% block body %}
+<div class="card center" style="padding:50px">
+  <div style="font-size:2.4em;color:var(--brand)">{{ ic('lock') }}</div>
+  <h3>هنوز منویی برای شما فعال نشده است</h3>
+  <p class="muted">مدیر سایت باید از بخش «کاربران» منوهای مجاز شما را تعیین کند. پس از آن همین صفحه منوهای شما را نشان می‌دهد.</p>
+  <a class="btn l" href="/my-account/">{{ ic('user') }} پنل کاربری</a>
+</div>
+{% endblock %}

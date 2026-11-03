@@ -1,0 +1,41 @@
+{% extends "admin/base.html" %}{% from "admin/_m.html" import pager, st, csrf_field with context %}
+{% block title %}سفارشات{% endblock %}{% block h1 %}سفارشات ({{ fa(total) }}){% endblock %}
+{% block body %}
+<div class="tabs"><a href="?" class="{{ 'on' if not args.status }}">همه</a>{% for s in statuses %}{% if counts.get(s.slug) %}<a href="?status={{ s.slug }}" class="{{ 'on' if args.status == s.slug }}"><i class="dot" style="--c:{{ tag_color(s.slug, 'order') }}"></i> {{ s.label }} ({{ fa(counts[s.slug]) }})</a>{% endif %}{% endfor %}<a href="?shipping_type=postal" class="{{ 'on' if args.shipping_type == 'postal' }}">{{ ic('mail') }} ارسال پستی ({{ fa(ship_counts.postal) }})</a><a href="?shipping_type=cod" class="{{ 'on' if args.shipping_type == 'cod' }}">{{ ic('truck') }} پس کرایه ({{ fa(ship_counts.cod) }})</a></div>
+<form class="card row" method="get">
+  {% if args.status %}<input type="hidden" name="status" value="{{ args.status }}">{% endif %}
+  <input class="in grow" name="q" value="{{ args.q or '' }}" placeholder="شماره سفارش، موبایل، نام مشتری، شهر، کد تراکنش">
+  <input class="in" data-jdate name="from" value="{{ args.get('from','') }}" placeholder="از تاریخ" style="width:130px"><input class="in" data-jdate name="to" value="{{ args.to or '' }}" placeholder="تا تاریخ" style="width:130px">
+  <select class="in" name="payment" style="width:auto"><option value="">همه درگاه‌ها</option>{% for p in pays %}<option {{ 'selected' if args.payment == p }}>{{ p }}</option>{% endfor %}</select>
+  <button class="btn">جستجو</button></form>
+{% if sms_unsent %}<form method="post" action="/admin/orders/pwsms-unsent" class="alert info row sp" onsubmit="return confirm('پیامک تایید سفارش برای {{ sms_unsent }} سفارش پرداخت‌شده‌ای که پیامک نگرفته‌اند ارسال شود؟')">{{ csrf_field() }}
+  <span>{{ ic('message-square-warning') }} {{ fa(sms_unsent) }} سفارش پرداخت‌شده در ۷ روز اخیر هنوز پیامک تایید سفارش نگرفته‌اند.</span><input type="hidden" name="days" value="7">
+  <button class="btn s">{{ ic('send') }} ارسال پیامک برای همه آن‌ها</button></form>{% endif %}
+<form method="post" action="/admin/orders/bulk" class="card">{{ csrf_field() }}
+  <div class="row" style="margin-bottom:10px"><select class="in" name="bulk_action" style="width:auto"><option value="">کار گروهی…</option>
+    <option value="print_orders">چاپ سفارشات</option><option value="pwsms">ارسال پیامک تایید سفارش</option><option value="print">چاپ فاکتور</option><option value="label">چاپ برچسب پستی</option>
+    {% for s in statuses %}<option value="status:{{ s.slug }}">تغییر وضعیت به «{{ s.label }}»</option>{% endfor %}</select>
+    <label class="small"><input type="checkbox" name="notify" value="1" checked> ارسال پیامک</label><button class="btn l">اجرا</button>
+    <button type="button" class="btn s" id="printSel">{{ ic('printer') }} چاپ سفارشات انتخاب شده</button>
+    <a class="btn s l" target="_blank" href="/admin/orders/print-slips?{{ ('shipping_type=' ~ args.shipping_type) if args.shipping_type else ('status=' ~ (args.status or 'all')) }}">{{ ic('printer') }} چاپ همه سفارشات (نمای کلی)</a>
+    <a class="btn s l" href="/admin/orders/print-settings" title="تنظیمات چاپ و فاکتور">{{ ic('settings') }}</a></div>
+  <div class="tw"><table class="t orders rsp"><thead><tr><th><input type="checkbox" data-checkall=".oc"></th><th data-sort="id">سفارش</th><th>محصولات</th><th data-sort="created">تاریخ</th><th data-sort="customer">مشتری</th><th data-sort="city">شهر</th><th data-sort="status">وضعیت</th><th data-sort="total">مبلغ</th><th data-sort="payment">پرداخت</th><th>رهگیری</th><th></th></tr></thead><tbody>
+  {% for o in rows %}<tr>
+    <td><input type="checkbox" class="oc" name="ids" value="{{ o.id }}"></td>
+    <td><a href="/admin/orders/{{ o.id }}"><b>#{{ fa(o.id) }}</b></a></td>
+    <td>{% set its = thumbs.get(o.id, []) %}{% if its %}<div class="oitems">{% for i in its[:3] %}<a class="oitem" href="/admin/orders/{{ o.id }}" title="{{ i.name }} × {{ i.qty }}{{ (' — ' ~ i.attrs) if i.attrs }}"><img src="{{ i.img }}" alt="" loading="lazy">
+      <span><b>{{ fa(i.qty) }}×</b> {{ i.name|truncate(34) }}{% if i.attrs %}<em>{{ i.attrs }}</em>{% endif %}</span></a>{% endfor %}{% if its|length > 3 %}<a class="small muted" href="/admin/orders/{{ o.id }}">+{{ fa(its|length - 3) }} قلم دیگر</a>{% endif %}</div>{% endif %}</td>
+    <td class="small">{{ jdt(o.created) }}</td>
+    <td>{{ o.customer_name or '' }}<div class="small muted mono">{{ o.phone or '' }}</div></td><td class="small">{{ o.city or '' }}</td>
+    <td>{{ st(o.status, statuses) }}{% if o.status in paid_statuses %} <span title="{{ 'پیامک تایید سفارش ارسال شده' if o.id in sms_sent else 'پیامک تایید سفارش ارسال نشده' }}" style="color:{{ '#16a34a' if o.id in sms_sent else '#dc2626' }}">{{ ic('message-square-text' if o.id in sms_sent else 'message-square-x') }}</span>{% endif %}{% if bcs.get(o.id) == 'delivered' %} {{ tag('delivered', 'تحویل شد') }}{% endif %}</td>
+    <td><b>{{ money(o.total) }}</b></td><td class="small">{{ o.payment_title or '' }}</td>
+    <td class="small mono">{{ trk.get(o.id) or '' }}</td>
+    <td><a class="btn s l" href="/admin/orders/{{ o.id }}/print" target="_blank">{{ ic('printer') }}</a></td></tr>
+  {% else %}<tr><td colspan="10" class="muted">سفارشی یافت نشد.</td></tr>{% endfor %}</tbody></table></div>
+</form>
+{{ pager(page, pages) }}
+{% endblock %}
+
+{% block scripts %}<script>
+document.getElementById('printSel').onclick=()=>{const ids=[...document.querySelectorAll('.oc:checked')].map(x=>x.value);if(!ids.length){alert('لطفاً حداقل یک سفارش انتخاب کنید.');return}window.open('/admin/orders/print-slips?order_ids='+ids.join(','),'_blank')};
+</script>{% endblock %}

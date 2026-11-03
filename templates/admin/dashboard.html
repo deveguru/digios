@@ -1,0 +1,32 @@
+{% extends "admin/base.html" %}{% from "admin/_m.html" import st with context %}
+{% block title %}داشبورد{% endblock %}{% block h1 %}داشبورد{% endblock %}
+{% block body %}
+<div class="kpis">
+  <div class="kpi"><span>فروش امروز</span><b>{{ money(kpi.today_sales) }}</b></div>
+  <div class="kpi"><span>سفارش‌های امروز</span><b>{{ fa(kpi.today_orders) }}</b></div>
+  <div class="kpi"><span>فروش ۷ روز</span><b>{{ money(kpi.week_sales) }}</b></div>
+  <div class="kpi"><span>فروش ۳۰ روز</span><b>{{ money(kpi.month_sales) }}</b></div>
+  <div class="kpi"><span>در حال انجام</span><b>{{ fa(kpi.processing) }}</b></div>
+  <div class="kpi"><span>کاربران آنلاین</span><b>{{ fa(kpi.online) }}</b></div>
+  <div class="kpi"><span>بازدید محصولات امروز</span><b>{{ fa(kpi.views_today) }}</b></div>
+  <div class="kpi"><span>محصولات منتشر شده / ناموجود</span><b>{{ fa(kpi.products) }} / {{ fa(kpi.out_of_stock) }}</b></div>
+  <div class="kpi"><span>کاربران</span><b>{{ fa(kpi.customers) }}</b></div>
+  <div class="kpi"><span>پیام پشتیبانی جدید</span><b>{{ fa(kpi.support_new) }}</b></div>
+</div>
+<div class="card"><h3>فروش ۳۰ روز اخیر</h3>
+  {% set mx = (days|map(attribute='s')|max) or 1 %}
+  <div class="chart">{% for d in days %}<div style="height:{{ (d.s * 100 / mx)|round(1) }}%" data-t="{{ d.d }}: {{ money(d.s) }} ({{ fa(d.n) }})"></div>{% endfor %}</div>
+  <div class="row sp small muted"><span>{{ days[0].d }}</span><span>{{ days[-1].d }}</span></div>
+</div>
+<div class="g2">
+  <div class="card"><h3>آخرین سفارش‌ها</h3><div class="tw"><table class="t"><tbody>
+    {% for o in recent %}<tr><td><a href="/admin/orders/{{ o.id }}"><b>#{{ fa(o.id) }}</b></a></td><td>{{ o.customer_name or '' }}</td><td>{{ st(o.status, statuses) }}</td><td>{{ money(o.total) }}</td></tr>{% endfor %}
+  </tbody></table></div></div>
+  <div class="card"><h3>پرفروش‌های ۳۰ روز</h3><table class="t"><tbody>
+    {% for pid, name, q in top %}<tr><td><a href="/admin/products/{{ pid }}">{{ name }}</a></td><td>{{ fa(q) }} عدد</td></tr>{% endfor %}
+  </tbody></table></div>
+</div>
+{% if report %}<div class="card"><h3>گزارش انتقال اطلاعات از وردپرس ({{ jdt(report.at) }})</h3><table class="t"><tbody>
+  {% for k, v in report.checks.items() %}<tr><td>{{ k }}</td><td>وردپرس: {{ v.wordpress }}</td><td>پلتفرم: {{ v.platform }}</td><td class="{{ 'ok' if v.ok else 'bad' }}">{% if v.ok %}{{ ic('check') }} برابر{% else %}{{ ic('triangle-alert') }}{% endif %}{% if v.orphans_in_legacy %} ({{ v.orphans_in_legacy }} آیتم یتیم در آرشیو){% endif %}</td></tr>{% endfor %}
+</tbody></table></div>{% endif %}
+{% endblock %}

@@ -1,0 +1,11 @@
+{% extends "admin/base.html" %}{% from "admin/_m.html" import pager with context %}
+{% block title %}لاگ محصولات{% endblock %}{% block h1 %}لاگ تغییرات محصولات ({{ fa(total) }}){% endblock %}
+{% block body %}
+<form class="card row"><input class="in grow" name="q" value="{{ request.args.q or '' }}" placeholder="نام، SKU یا شناسه محصول"><input class="in" name="editor" value="{{ request.args.editor or '' }}" placeholder="نام کاربری ویرایشگر" style="width:200px"><button class="btn">فیلتر</button></form>
+<div class="card tw"><table class="t small"><thead><tr><th>زمان</th><th>محصول</th><th>عملیات</th><th>تغییرات</th><th>ویرایشگر</th></tr></thead><tbody>
+{% for r in rows %}<tr><td>{{ jdt(r.log_time) }}</td><td><a href="/admin/products/{{ r.product_id }}">{{ r.product_name|truncate(50) }}</a><div class="muted mono">{{ r.product_sku }}</div></td>
+<td>{{ tag(r.action_type, kind='plog') }}</td>
+<td>{% if r.changes is mapping %}{% for k, v in r.changes.items() %}<div><b>{{ k }}</b>: {% if v is sequence and v is not string and v|length == 2 %}{{ v[0] }} {{ ic('arrow-right') }} {{ v[1] }}{% else %}{{ v }}{% endif %}</div>{% endfor %}{% endif %}</td>
+<td>{{ r.editor_name or r.editor_login }}<div class="muted">{{ r.editor_roles }}</div></td></tr>{% endfor %}</tbody></table></div>
+{{ pager(page, pages) }}
+{% endblock %}

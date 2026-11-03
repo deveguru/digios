@@ -1,0 +1,10 @@
+{% extends "admin/base.html" %}
+{% block title %}کیف پول{% endblock %}{% block h1 %}کیف پول کاربران{% endblock %}
+{% block body %}
+<div class="kpis"><div class="kpi"><span>مجموع موجودی‌ها</span><b>{{ money(total_bal) }}</b></div><div class="kpi"><span>کاربران دارای موجودی</span><b>{{ fa(holders) }}</b></div></div>
+<div class="card tw"><h3>تراکنش‌ها</h3><table class="t small"><thead><tr><th>زمان</th><th>کاربر</th><th>نوع</th><th>شرح</th><th>مبلغ</th><th>مانده</th></tr></thead><tbody>
+{% for t in rows %}<tr><td>{{ jdt(t.created_at) }}</td><td><a href="/admin/customers/{{ t.user_id }}">{{ t.display_name or t.username }}</a></td><td>{{ t.type }}</td><td>{{ t.description }}{% if t.order_id %} <a href="/admin/orders/{{ t.order_id }}">#{{ t.order_id }}</a>{% endif %}</td>
+<td class="{{ 'ok' if t.amount > 0 else 'bad' }}">{{ money(t.amount) }}</td><td>{{ money(t.balance_after) }}</td></tr>{% else %}<tr><td class="muted">تراکنشی نیست.</td></tr>{% endfor %}</tbody></table>
+<div class="pager"><a href="?page={{ page + 1 }}">صفحه بعد {{ ic('chevron-left') }}</a></div></div>
+<div class="card"><h3>پرداخت‌های شارژ</h3><table class="t small">{% for p in pays %}<tr><td>{{ jdt(p.created) }}</td><td>{{ p.user_id }}</td><td>{{ money(p.amount) }}</td><td class="mono">{{ p.transid }}</td><td>{{ tag(p.status) }}</td></tr>{% endfor %}</table></div>
+{% endblock %}

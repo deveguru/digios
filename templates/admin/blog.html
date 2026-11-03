@@ -1,0 +1,13 @@
+{% extends "admin/base.html" %}{% from "admin/_m.html" import pager with context %}
+{% block title %}نوشته‌ها{% endblock %}{% block h1 %}نوشته‌ها و تولید محتوا ({{ fa(total) }}){% endblock %}
+{% block actions %}<a class="btn" href="/admin/blog/new">{{ ic('plus') }} نوشته جدید</a><a class="btn l" href="/blog/" target="_blank">{{ ic('external-link') }} وبلاگ</a>{% endblock %}
+{% block body %}
+{% if not ai_on %}<div class="alert info">{{ ic('sparkles') }} برای نوشتن مقاله و ساخت تصویر شاخص با هوش مصنوعی، کلید لمورا را در <a href="/admin/ai"><b>تنظیمات هوش مصنوعی</b></a> وارد کنید.</div>{% endif %}
+<div class="tabs"><a href="?" class="{{ 'on' if not request.args.status }}">همه</a><a href="?status=publish" class="{{ 'on' if request.args.status == 'publish' }}">منتشر شده</a><a href="?status=draft" class="{{ 'on' if request.args.status == 'draft' }}">پیش‌نویس</a></div>
+<div class="card tw"><table class="t"><thead><tr><th></th><th>عنوان</th><th>وضعیت</th><th>تاریخ</th><th></th></tr></thead><tbody>
+{% for r in rows %}<tr><td>{% if r._img %}<img class="thumb" src="{{ r._img }}">{% endif %}</td><td><a href="/admin/blog/{{ r.id }}"><b>{{ r.title or '(بدون عنوان)' }}</b></a></td>
+<td>{{ tag(r.status) }}</td><td class="small">{{ jdt(r.created) }}</td>
+<td><a class="btn s l" href="/admin/blog/{{ r.id }}">{{ ic('pencil') }}</a> <a class="btn s l" href="/{{ url_slug(r.slug) }}/" target="_blank">{{ ic('external-link') }}</a></td></tr>
+{% else %}<tr><td colspan="5" class="muted">هنوز نوشته‌ای نیست.</td></tr>{% endfor %}</tbody></table></div>
+{{ pager(page, pages) }}
+{% endblock %}

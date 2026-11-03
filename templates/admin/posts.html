@@ -1,0 +1,25 @@
+{% extends "admin/base.html" %}{% from "admin/_m.html" import csrf_field with context %}
+{% block title %}{{ title }}{% endblock %}{% block h1 %}{{ title }}{% endblock %}
+{% block actions %}<a class="btn" href="?">{{ ic('plus') }} جدید</a>{% endblock %}
+{% block body %}{% set m = (cur.meta if cur else {}) or {} %}
+<div class="g2">
+<form class="card" method="post" enctype="multipart/form-data">{{ csrf_field() }}<input type="hidden" name="id" value="{{ cur.id if cur else '' }}"><h3>{{ 'ویرایش' if cur else 'افزودن' }}</h3>
+<label class="f"><span>عنوان</span><input class="in" name="title" value="{{ cur.title if cur else '' }}" required></label>
+{% if key == 'pages' %}<label class="f"><span>نامک</span><input class="in" name="slug" value="{{ (cur.slug if cur else '')|urldecode }}"></label>
+<label class="f"><span>محتوا (HTML و شورت‌کدها)</span><textarea class="in" name="content" rows="14">{{ cur.content if cur else '' }}</textarea></label>{% endif %}
+{% if key == 'stories' %}<label class="f"><span>لینک</span><input class="in" name="_ssp_link" value="{{ m._ssp_link or '' }}"></label><label class="f"><span>متن</span><textarea class="in" name="content" rows="3">{{ cur.content if cur else '' }}</textarea></label>{% endif %}
+{% if key in ('stories', 'sp_image') %}<label class="f"><span>تصویر</span><input class="in" type="file" name="image" accept="image/*"></label>{% endif %}
+{% if key == 'sp_image' %}<div class="g2">{% for f in fields if f != '_sp_image_id' %}<label class="f"><span class="mono">{{ f|replace('_sp_','')|replace('_',' ') }}</span><input class="in" name="{{ f }}" value="{{ m[f] or '' }}"></label>{% endfor %}</div>
+{% if cur %}<p class="small">شورت‌کد: <span class="mono">[sp_image id="{{ cur.id }}"]</span></p>{% endif %}{% endif %}
+{% if key == 'card_master' %}<label class="f"><span>دسته‌های محصول</span><div style="max-height:200px;overflow:auto;border:1px solid var(--line);border-radius:9px;padding:8px">{% for c in cats %}<label class="small" style="display:inline-block;margin-left:10px"><input type="checkbox" name="_wccm_product_cats" value="{{ c.id }}" {{ 'checked' if c.id in (m._wccm_product_cats or [])|map('int')|list }}> {{ c.name }}</label>{% endfor %}</div></label>
+<div class="g3"><label class="f"><span>فقط حراجی‌ها</span><select class="in" name="_wccm_only_sale"><option value="">خیر</option><option value="1" {{ 'selected' if m._wccm_only_sale in ('1','yes') }}>بله</option></select></label>
+<label class="f"><span>تعداد</span><input class="in" name="_wccm_limit" value="{{ m._wccm_limit or 16 }}"></label><label class="f"><span>مرتب‌سازی</span><select class="in" name="_wccm_orderby">{% for k, l in [('date','جدیدترین'),('popularity','پرفروش'),('views','پربازدید'),('price','ارزان‌ترین')] %}<option value="{{ k }}" {{ 'selected' if m._wccm_orderby == k }}>{{ l }}</option>{% endfor %}</select></label></div>
+{% if cur %}<p class="small">شورت‌کد: <span class="mono">[wc_card_master id="{{ cur.id }}"]</span> — در صفحه اصلی هم نمایش داده می‌شود.</p>{% endif %}{% endif %}
+<div class="g2"><label class="f"><span>ترتیب</span><input class="in" name="menu_order" value="{{ cur.menu_order if cur else 0 }}"></label>
+<label class="f"><span>وضعیت</span><select class="in" name="status"><option value="publish">منتشر</option><option value="draft" {{ 'selected' if cur and cur.status == 'draft' }}>پیش‌نویس</option></select></label></div>
+<button class="btn">ذخیره</button></form>
+<div class="card tw"><table class="t small"><tbody>{% for r in rows %}<tr><td>{% if r._img %}<img class="thumb" src="{{ r._img }}">{% endif %}</td><td><b>{{ r.title }}</b><div class="muted">#{{ r.id }} — {{ tag(r.status) }}</div></td>
+<td><a class="btn s l" href="?edit={{ r.id }}">ویرایش</a>{% if key == 'pages' %} <a class="btn s l" href="/{{ url_slug(r.slug) }}/" target="_blank">{{ ic('external-link') }}</a>{% endif %}
+<form method="post" style="display:inline">{{ csrf_field() }}<input type="hidden" name="id" value="{{ r.id }}"><button class="btn s red" name="action" value="delete" onclick="return confirm('حذف؟')">حذف</button></form></td></tr>{% endfor %}</tbody></table></div>
+</div>
+{% endblock %}

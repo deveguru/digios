@@ -1,0 +1,35 @@
+{% extends "base.html" %}
+{% block title %}{{ page.title }} | {{ site_name }}{% endblock %}
+{% block desc %}{{ (page.meta or {}).get('meta_description') or (page.excerpt or '')|striptags|truncate(155) }}{% endblock %}
+{% block head %}{% if img %}<meta property="og:image" content="{{ img }}">{% endif %}<meta property="og:title" content="{{ page.title }}"><meta property="og:type" content="article">
+<style>.post-hero{position:relative;border-radius:26px;overflow:hidden;margin:20px 0;box-shadow:var(--sh-h);background:linear-gradient(135deg,var(--brand),var(--accent));min-height:260px;display:flex;align-items:flex-end}
+.post-hero img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}.post-hero .ov{position:relative;width:100%;padding:34px 30px;background:linear-gradient(transparent,rgba(0,0,0,.78));color:#fff}
+.post-hero h1{margin:0 0 10px;font-size:clamp(1.5rem,3.4vw,2.4rem);line-height:1.4}.post-hero .meta{display:flex;gap:16px;flex-wrap:wrap;font-size:.88em;opacity:.9}
+.post-grid{display:grid;grid-template-columns:minmax(0,1fr) 280px;gap:24px;align-items:start}@media(max-width:900px){.post-grid{grid-template-columns:1fr}.post-side{order:-1}}
+.post-body{font-size:1.06em;line-height:2.1}.post-body h2{margin:34px 0 12px;font-size:1.4em;scroll-margin-top:90px;display:flex;gap:10px;align-items:center}
+.post-body h2:before{content:"";width:8px;height:26px;border-radius:4px;background:linear-gradient(var(--brand),var(--accent))}.post-body h3{margin:24px 0 8px;scroll-margin-top:90px}
+.post-body img{border-radius:16px;box-shadow:var(--sh)}.post-body blockquote{margin:16px 0;padding:14px 18px;border-inline-start:4px solid var(--brand);background:var(--bg-2);border-radius:12px}
+.post-side{position:sticky;top:92px}.toc a{display:block;padding:6px 10px;border-radius:10px;font-size:.9em;color:var(--ink-2)}.toc a:hover{background:var(--brand-l);color:var(--brand)}
+.lead{font-size:1.12em;color:var(--ink-2);border-inline-start:3px solid var(--brand);padding-inline-start:14px;margin-bottom:22px}</style>{% endblock %}
+{% block body %}
+<div class="wrap">
+  <div class="crumbs"><a href="/">خانه</a> {{ ic('chevron-left') }} <a href="/blog/">وبلاگ</a></div>
+  <header class="post-hero">{% if img %}<img src="{{ img }}" alt="{{ page.title }}">{% endif %}
+    <div class="ov"><h1>{{ page.title }}</h1><div class="meta"><span class="row" style="gap:6px">{{ ic('calendar') }}{{ jdate(page.created) }}</span>
+      <span class="row" style="gap:6px">{{ ic('clock') }}{{ fa(read_min) }} دقیقه مطالعه</span>{% if author %}<span class="row" style="gap:6px">{{ ic('user') }}{{ author }}</span>{% endif %}</div></div></header>
+  <div class="post-grid">
+    <article class="card post-body content">{% if page.excerpt %}<p class="lead">{{ page.excerpt|striptags }}</p>{% endif %}{{ html }}
+      <div class="row" style="margin-top:26px;border-top:1px solid var(--line);padding-top:16px"><b>اشتراک‌گذاری:</b>
+        <a class="btn sm light" target="_blank" rel="noopener" href="https://t.me/share/url?url={{ request.url|urlencode }}">{{ ic('send') }} تلگرام</a>
+        <a class="btn sm light" target="_blank" rel="noopener" href="https://wa.me/?text={{ request.url|urlencode }}">{{ ic('message-circle') }} واتساپ</a>
+        <button class="btn sm light" type="button" onclick="navigator.clipboard.writeText(location.href).then(()=>toast('لینک کپی شد'))">{{ ic('link') }} کپی لینک</button></div></article>
+    <aside class="post-side">
+      <div class="card toc" id="toc"><b class="row" style="margin-bottom:8px">{{ ic('list') }} فهرست مطالب</b></div>
+      {% if related %}<div class="card" style="margin-top:14px"><b class="row" style="margin-bottom:8px">{{ ic('newspaper') }} مطالب مرتبط</b>
+        {% for r in related %}<a href="/{{ url_slug(r.slug) }}/" class="row" style="gap:10px;padding:6px 0;align-items:flex-start">{% if r._img %}<img src="{{ r._img }}" alt="" style="width:62px;height:46px;object-fit:cover;border-radius:10px">{% endif %}<span class="small">{{ r.title }}</span></a>{% endfor %}</div>{% endif %}
+    </aside>
+  </div>
+</div>
+{% endblock %}
+{% block scripts %}<script>(function(){const toc=document.getElementById('toc'),hs=document.querySelectorAll('.post-body h2, .post-body h3');if(!hs.length){toc.remove();return}
+hs.forEach((h,i)=>{h.id=h.id||'s'+i;const a=document.createElement('a');a.href='#'+h.id;a.textContent=h.textContent;if(h.tagName==='H3')a.style.paddingInlineStart='22px';toc.appendChild(a)})})();</script>{% endblock %}

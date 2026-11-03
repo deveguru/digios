@@ -1,0 +1,11 @@
+{% extends "admin/base.html" %}{% from "admin/_m.html" import pager with context %}
+{% block title %}مشتریان{% endblock %}{% block h1 %}کاربران و مشتریان ({{ fa(total) }}){% endblock %}
+{% block body %}
+<form class="card row"><input class="in grow" name="q" value="{{ request.args.q or '' }}" placeholder="نام، نام کاربری، موبایل یا ایمیل">
+<select class="in" name="role" style="width:auto"><option value="">همه نقش‌ها</option>{% for k, l in roles.items() %}<option value="{{ k }}" {{ 'selected' if request.args.role == k }}>{{ l }}</option>{% endfor %}</select>
+<select class="in" name="sort" style="width:auto"><option value="">جدیدترین</option><option value="spent" {{ 'selected' if request.args.sort == 'spent' }}>بیشترین خرید</option><option value="orders" {{ 'selected' if request.args.sort == 'orders' }}>بیشترین سفارش</option><option value="wallet" {{ 'selected' if request.args.sort == 'wallet' }}>موجودی کیف پول</option></select><button class="btn">جستجو</button></form>
+<div class="card tw"><table class="t rsp"><thead><tr><th data-sort="user">کاربر</th><th data-sort="phone">موبایل</th><th data-sort="role">نقش</th><th data-sort="orders">سفارش</th><th data-sort="spent">مجموع خرید</th><th data-sort="wallet">کیف پول</th><th data-sort="joined">عضویت</th></tr></thead><tbody>
+{% for u in rows %}<tr><td><a href="/admin/customers/{{ u.id }}"><b>{{ u.display_name or u.username }}</b></a><div class="small muted mono">{{ u.username }}</div></td><td class="mono">{{ u.phone or '' }}</td>
+<td>{{ tag(u.role, roles.get(u.role, u.role)) }}</td><td>{{ fa(u.order_count or 0) }}</td><td>{{ money(u.money_spent or 0) }}</td><td>{{ money(u.wallet_balance or 0) }}</td><td class="small">{{ jdate(u.registered) }}</td></tr>{% endfor %}</tbody></table></div>
+{{ pager(page, pages) }}
+{% endblock %}

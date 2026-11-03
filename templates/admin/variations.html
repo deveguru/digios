@@ -1,0 +1,15 @@
+{% extends "admin/base.html" %}{% from "admin/_m.html" import csrf_field, joblist with context %}
+{% block title %}ویژگی‌ها و متغیرها{% endblock %}{% block h1 %}ویژگی‌ها و متغیرهای محصولات (WC Variations Manager){% endblock %}
+{% block body %}
+<div class="g2">
+<form class="card" method="post">{{ csrf_field() }}<input type="hidden" name="action" value="attr_save"><h3>ویژگی جدید</h3>
+<div class="g2"><label class="f"><span>نام نمایشی</span><input class="in" name="label" required></label><label class="f"><span>نامک لاتین</span><input class="in" name="name" placeholder="color"></label></div><button class="btn">افزودن</button></form>
+<form class="card" method="post">{{ csrf_field() }}<input type="hidden" name="action" value="build"><h3>ساخت و انتشار متغیرها</h3>
+<p class="small muted">برای {{ fa(nvar) }} محصول متغیر، همه ترکیب‌های ویژگی‌های «برای متغیر» ساخته می‌شود (متغیرهای موجود دست نمی‌خورند).</p>
+<label class="f"><span>فقط این محصولات (شناسه‌ها با کاما — خالی = همه)</span><input class="in" name="product_ids"></label><button class="btn">ساخت متغیرها</button></form>
+</div>
+{{ joblist(jobs[:2]) }}
+{% for a in attrs %}<div class="card"><div class="row sp"><h3>{{ a.label }} <span class="muted mono small">pa_{{ a.name }}</span></h3><span class="small muted">{{ fa(a.terms|length) }} مقدار</span></div>
+<div class="row" style="margin-bottom:8px">{% for t in a.terms %}<span class="badge">{{ t.name }} <span class="muted">({{ fa(t.count) }})</span></span>{% endfor %}</div>
+<form method="post" class="row">{{ csrf_field() }}<input type="hidden" name="action" value="term_add"><input type="hidden" name="tax" value="pa_{{ a.name }}"><input class="in grow" name="values" placeholder="مقادیر جدید با کاما: قرمز، آبی، سبز"><button class="btn l">افزودن مقدار</button></form></div>{% endfor %}
+{% endblock %}

@@ -1,0 +1,18 @@
+{% extends "admin/base.html" %}{% from "admin/_m.html" import csrf_field, sw with context %}
+{% block title %}ترب{% endblock %}{% block h1 %}ترب — افزونه رسمی{% endblock %}
+{% block body %}
+<div class="kpis"><div class="kpi"><span>اتصال (توکن وب‌هوک)</span><b class="{{ 'ok' if s.has_token else 'bad' }}">{{ 'متصل' if s.has_token else 'بدون توکن' }}</b></div>
+<div class="kpi"><span>سفارش‌های ورودی از ترب</span><b>{{ fa(s.clid_orders) }}</b></div><div class="kpi"><span>در صف ارسال به ترب</span><b>{{ fa(s.queued) }}</b></div>
+<div class="kpi"><span>نسخه سازگار</span><b>{{ s.version }}</b></div></div>
+<div class="alert info">{{ ic('info') }}<span>مسیرهای وب‌سرویس دقیقاً مثل افزونه وردپرس است، بنابراین اتصال فعلی ترب پس از جابجایی بدون تغییر ادامه پیدا می‌کند: <span class="mono">/wp-json/wcpe/v1/products</span>، <span class="mono">/wp-json/torob-api/v1/order-status</span>، <span class="mono">/wp-json/torob-api/v1/orders</span>. احراز هویت با توکن امضاشده ترب برای دامنه <b class="mono">{{ s.domain }}</b> انجام می‌شود.</span></div>
+<form class="card" method="post">{{ csrf_field() }}<input type="hidden" name="action" value="options"><h3>{{ ic('settings') }} تنظیمات</h3>
+<div class="feat"><span>پاسخ به استعلام وضعیت سفارش از ترب</span>{{ sw('torob_order_status_enabled', s.order_status) }}</div>
+<div class="feat"><span>وب‌سرویس فهرست سفارش‌های ترب (کلیک‌شده از ترب)</span>{{ sw('torob_orders_list_api_enabled', s.orders_list) }}</div>
+<div class="feat"><span>اطلاع‌رسانی فوری تغییر قیمت/موجودی به ترب (وب‌هوک)</span>{{ sw('torob_product_page_webhook_enabled', s.webhook) }}</div>
+<label class="f" style="margin-top:10px"><span>توکن وب‌هوک {{ '(ثبت شده: ' ~ s.token_set_at ~ ')' if s.has_token }} — معمولاً خود ترب آن را تنظیم می‌کند</span><input class="in mono" name="torob_token" autocomplete="off" placeholder="برای تغییر دستی وارد کنید"></label>
+<button class="btn">{{ ic('save') }} ذخیره</button></form>
+<form class="card" method="post">{{ csrf_field() }}<h3>{{ ic('activity') }} ابزارها</h3><div class="row">
+<button class="btn l" name="action" value="health">{{ ic('stethoscope') }} بررسی اتصال به سرورهای ترب</button>
+<button class="btn l" name="action" value="push_all" onclick="return confirm('همه محصولات منتشر شده برای به‌روزرسانی به ترب ارسال شوند؟')">{{ ic('refresh-cw') }} ارسال همه محصولات به ترب</button></div>
+<p class="small muted">آدرس فید: <span class="mono">{{ s.feed_url }}</span></p></form>
+{% endblock %}
